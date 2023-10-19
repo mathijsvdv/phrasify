@@ -1,11 +1,11 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-requirements-txt"]
 build-backend = "hatchling.build"
 
 [project]
 name = "anki-convo"
-dynamic = ["version"]
-description = ''
+dynamic = ["version", "dependencies"]
+description = 'Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into fresh sentences on the fly and have conversations using your vocabulary.'
 readme = "README.md"
 requires-python = ">=3.7"
 license = "GPL-3.0-or-later"
@@ -24,7 +24,6 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
 
 [project.urls]
 Documentation = "https://github.com/unknown/anki-convo#readme"
@@ -33,6 +32,9 @@ Source = "https://github.com/unknown/anki-convo"
 
 [tool.hatch.version]
 path = "src/anki_convo/__about__.py"
+
+[tool.hatch.metadata.hooks.requirements_txt]
+files = ["requirements.txt"]
 
 [tool.hatch.envs.default]
 dependencies = [
