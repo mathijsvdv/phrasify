@@ -1,9 +1,10 @@
 .PHONY: ankisync init
 
 WIN_APPDATA := $(shell wslpath "$$(wslvar APPDATA)")
+ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/9999999999/
 
 ankisync:
-	rsync -avz ./src/anki_convo ${WIN_APPDATA}/Anki2/addons21/ \
+	rsync -avz ./src/anki_convo/ ${ANKI_ADDON_PATH}/ \
 	--cvs-exclude --delete --filter=':- .gitignore'
 
 init:
