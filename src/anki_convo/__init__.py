@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from anki_convo.card_count_view import init_card_count_view
+from .card_count_view import init_card_count_view
 
 
 def init_addon():

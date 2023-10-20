@@ -1,0 +1,5 @@
+{
+    "ruff.lint.args": [
+        "--config=pyproject.toml"
+    ]
+}
