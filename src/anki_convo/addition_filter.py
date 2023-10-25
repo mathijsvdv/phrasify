@@ -1,6 +1,6 @@
 import random
 import re
-from typing import Any, Dict, Optional
+from functools import lru_cache
 
 from anki import hooks
 from anki.template import TemplateRenderContext
@@ -10,6 +10,15 @@ from anki.template import TemplateRenderContext
 
 # The filter in the question can be put like {{add-x:1-10}}
 # In the answer we can put {{add-x:1-10-answer}} to generate the answer
+
+
+@lru_cache(maxsize=None)
+def cached_randrange(
+    start: int,
+    stop: int,
+    context_id: int,  # noqa: ARG001 context_id is needed because we only want to cache within one card render
+) -> int:
+    return random.randrange(start, stop)
 
 
 def addition_filter(
@@ -29,18 +38,16 @@ def addition_filter(
         # not our filter, return string unchanged
         return field_text
 
-    match = re.match(r"(?P<label>add-(?P<start>[0-9]+)-(?P<stop>[0-9]+))(-(?P<qa>[qa]))?", filter_name)
+    match = re.match(r"add-(?P<start>[0-9]+)-(?P<stop>[0-9]+)(-(?P<qa>[qa]))?", filter_name)
 
     if match:
-        label = match.group("label")
         start = int(match.group("start"))
         stop = int(match.group("stop"))
         qa = match.group("qa")
     else:
         return invalid_name(filter_name)
 
-    randrange = CachedRandomRange(cache=context.extra_state)
-    to_add = randrange(start, stop, label=label)
+    to_add = cached_randrange(start, stop, context_id=id(context))
 
     if qa == "q":
         return get_question(field_text, to_add)
@@ -51,19 +58,6 @@ def addition_filter(
         return get_question(field_text, to_add)
     else:
         return get_answer(field_text, to_add, field_name=field_name)
-
-
-class CachedRandomRange:
-    def __init__(self, cache: Optional[Dict[str, Any]] = None):
-        self.cache = cache or {}
-
-    def __call__(self, start: int, stop: int, label: str) -> int:
-        try:
-            to_add = self.cache[label]
-        except KeyError:
-            to_add = random.randrange(start, stop)
-            self.cache[label] = to_add
-        return to_add
 
 
 def invalid_name(filter_name: str) -> str:
