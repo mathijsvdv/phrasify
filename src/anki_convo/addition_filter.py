@@ -18,6 +18,8 @@ def cached_randrange(
     stop: int,
     context_id: int,  # noqa: ARG001 context_id is needed because we only want to cache within one card render
 ) -> int:
+    # Careful, if multiple processes are spun up, this cache might not be shared.
+    # We could use a database to share the cache.
     return random.randrange(start, stop)
 
 
