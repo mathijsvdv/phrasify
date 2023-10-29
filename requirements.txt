@@ -2,3 +2,4 @@ anki
 aqt[qt6]
 langchain
 openai
+python-dotenv

@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import random
 import re
 from functools import lru_cache
+from typing import TYPE_CHECKING
 
-from anki import hooks
-from anki.template import TemplateRenderContext
-
+if TYPE_CHECKING:
+    from anki.template import TemplateRenderContext
 # Possible hooks and filters to use
 # from anki.hooks import card_did_render, field_filter
 
@@ -79,5 +81,7 @@ def get_answer(field_text, to_add, field_name=None):
 
 
 def init_addition_filter():
+    from anki import hooks
+
     # register our function to be called when the hook fires
     hooks.field_filter.append(addition_filter)

@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 from . import _paths  # noqa: F401 I001
 
+import os
+from dotenv import load_dotenv
 from .openai import init_openai
 from .addition_filter import init_addition_filter
 from .card_count_view import init_card_count_view
@@ -16,4 +18,6 @@ def init_addon():
     init_addition_filter()
 
 
-init_addon()
+load_dotenv()
+if os.getenv("INIT_ANKI_CONVO_ADDON", "true").lower() == "true":
+    init_addon()
