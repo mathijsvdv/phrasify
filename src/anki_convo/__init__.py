@@ -3,11 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 from . import _paths  # noqa: F401 I001
 
-from pathlib import Path
-import json
-
-import openai
-
+from .openai import init_openai
 from .addition_filter import init_addition_filter
 from .card_count_view import init_card_count_view
 from .field_filter import init_field_filter
@@ -31,12 +27,18 @@ from .field_filter import init_field_filter
 #     else:
 #         print(f"Successfully imported dependency `{dependency}`!")
 
-config_path = Path(__file__).parent / "config.json"
-with open(config_path) as f:
-    config = json.load(f)
 
-openai.api_key = config["openaiApiKey"]
+def init_addon():
+    init_openai()
+    init_card_count_view()
+    init_field_filter()
+    init_addition_filter()
 
+
+init_addon()
+
+
+# import openai
 # completion = openai.ChatCompletion.create(
 #   model="gpt-3.5-turbo",
 #   messages=[
@@ -47,12 +49,3 @@ openai.api_key = config["openaiApiKey"]
 # )
 
 # print(completion.choices[0].message)
-
-
-def init_addon():
-    init_card_count_view()
-    init_field_filter()
-    init_addition_filter()
-
-
-init_addon()
