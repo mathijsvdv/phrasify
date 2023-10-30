@@ -7,10 +7,12 @@ REQUIREMENTS := openai aiohttp aiosignal async_timeout charset_normalizer frozen
 
 ankisync:
 	rsync -avz ./src/anki_convo/ ${ANKI_ADDON_PATH}/ --delete \
-	--cvs-exclude --exclude "__pycache__/" --exclude "*.py[cod]" --exclude "*\$py.class";
+	--cvs-exclude --exclude "__pycache__/" --exclude "*.py[cod]" --exclude "*\$py.class" \
+	--exclude ".env" --exclude ".env.*";
 	for req in ${REQUIREMENTS}; do \
 		rsync -avz ${SITE_PACKAGES_PATH}/$$req ${ANKI_ADDON_PATH}/lib/ --delete \
-		--cvs-exclude --exclude "__pycache__/" --exclude "*.py[cod]" --exclude "*\$py.class"; \
+		--cvs-exclude --exclude "__pycache__/" --exclude "*.py[cod]" --exclude "*\$py.class" \
+		--exclude ".env" --exclude ".env.*"; \
 	done
 	cp -f ./src/anki_convo/user_files/.env.prod ${ANKI_ADDON_PATH}/user_files/.env
 
