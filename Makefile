@@ -1,5 +1,3 @@
-include .env
-
 .PHONY: ankisync init
 
 WIN_APPDATA := $(shell wslpath "$$(wslvar APPDATA)")
@@ -14,10 +12,7 @@ ankisync:
 		rsync -avz ${SITE_PACKAGES_PATH}/$$req ${ANKI_ADDON_PATH}/lib/ --delete \
 		--cvs-exclude --exclude "__pycache__/" --exclude "*.py[cod]" --exclude "*\$py.class"; \
 	done
-
-	@echo "Replacing OpenAI API Key in 'config.json' with own key"
-	@jq '.openaiApiKey = "${OPENAI_API_KEY}"' ./src/anki_convo/config.json > ${ANKI_ADDON_PATH}/config.json
-	@echo "Done!"
+	cp -f ./src/anki_convo/user_files/.env.prod ${ANKI_ADDON_PATH}/user_files/.env
 
 init:
 	pre-commit install

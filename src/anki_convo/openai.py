@@ -1,7 +1,7 @@
-import openai
+import os
 
-from .config import config
+import openai
 
 
 def init_openai():
-    openai.api_key = config["openaiApiKey"]
+    openai.api_key = os.getenv("OPENAI_API_KEY")

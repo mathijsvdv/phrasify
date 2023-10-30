@@ -4,20 +4,24 @@
 from . import _paths  # noqa: F401 I001
 
 import os
-from dotenv import load_dotenv
+from .env import load_env
 from .openai import init_openai
 from .addition_filter import init_addition_filter
 from .card_count_view import init_card_count_view
 from .field_filter import init_field_filter
 
 
-def init_addon():
+def init_package():
+    load_env()
     init_openai()
+
+
+def init_addon():
     init_card_count_view()
     init_field_filter()
     init_addition_filter()
 
 
-load_dotenv()
+init_package()
 if os.getenv("INIT_ANKI_CONVO_ADDON", "true").lower() == "true":
     init_addon()
