@@ -7,8 +7,8 @@ from typing import Any
 class LLM(ABC):
     """Base LLM abstract class.
 
-    Adapted from langchain's LLM base class, but simplified to only expose the _call and _acall methods
-    where the arguments are only the prompt and kwargs.
+    Adapted from langchain's LLM base class, but simplified to only expose the _call
+    and _acall methods where the arguments are only the prompt and kwargs.
     """
 
     @abstractmethod
@@ -33,4 +33,6 @@ class LLM(ABC):
         **kwargs: Any,
     ) -> str:
         """Run the LLM on the given prompt and input."""
-        return await asyncio.get_running_loop().run_in_executor(None, partial(self._call, **kwargs), prompt)
+        return await asyncio.get_running_loop().run_in_executor(
+            None, partial(self._call, **kwargs), prompt
+        )

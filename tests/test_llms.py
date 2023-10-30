@@ -9,9 +9,13 @@ def openai_llm():
 
 
 def test_openai_call(openai_llm, mocker):
-    mock_response = mocker.Mock(choices=[mocker.Mock(message=mocker.Mock(content="Hello, world!"))])
+    mock_response = mocker.Mock(
+        choices=[mocker.Mock(message=mocker.Mock(content="Hello, world!"))]
+    )
 
-    mock_create = mocker.patch("openai.ChatCompletion.create", return_value=mock_response)
+    mock_create = mocker.patch(
+        "openai.ChatCompletion.create", return_value=mock_response
+    )
 
     prompt = "What is the meaning of life?"
     response = openai_llm(prompt)

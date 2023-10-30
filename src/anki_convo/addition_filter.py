@@ -42,7 +42,8 @@ def addition_filter(
         # not our filter, return string unchanged
         return field_text
 
-    match = re.match(r"add-(?P<start>[0-9]+)-(?P<stop>[0-9]+)(-(?P<qa>[qa]))?", filter_name)
+    pattern = r"add-(?P<start>[0-9]+)-(?P<stop>[0-9]+)(-(?P<qa>[qa]))?"
+    match = re.match(pattern, filter_name)
 
     if match:
         start = int(match.group("start"))
