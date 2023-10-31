@@ -85,9 +85,10 @@ def create_card_generator(config: CardGeneratorConfig):
     """Create a LanguageCardGenerator from the config."""
     llm = get_llm()
     prompt = get_prompt(config.prompt_name)
-    return LanguageCardGenerator(
+    card_generator = LanguageCardGenerator(
         llm=llm, prompt=prompt, lang_front=config.lang_front, lang_back=config.lang_back
     )
+    return lru_cache(maxsize=None)(card_generator)
 
 
 CardGeneratorFactory = Callable[[CardGeneratorConfig], CardGenerator]
@@ -107,7 +108,7 @@ class LLMFilter:
     inserted into a prompt."""
 
     def __init__(self, card_generator: CardGenerator, card_side: CardSide):
-        self.card_generator = lru_cache(maxsize=None)(card_generator)
+        self.card_generator = card_generator
         self.card_side = card_side
 
     def __call__(self, field_text: str, field_name: str) -> str:
