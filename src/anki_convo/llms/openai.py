@@ -3,7 +3,7 @@ from typing import Any
 
 import openai
 
-from anki_convo.llms.base import LLM
+from .base import LLM
 
 
 @dataclass
