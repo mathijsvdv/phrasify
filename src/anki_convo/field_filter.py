@@ -40,11 +40,13 @@ template:
 We make use of the context argument to gain access to the card and note
 that is being rendered. See template.py for the other options it provides.
 """
+from __future__ import annotations
 
 import time
+from typing import TYPE_CHECKING
 
-from anki import hooks
-from anki.template import TemplateRenderContext
+if TYPE_CHECKING:
+    from anki.template import TemplateRenderContext
 
 
 # called each time a custom filter is encountered
@@ -89,5 +91,7 @@ def note_creation(ctx: TemplateRenderContext) -> str:
 
 
 def init_field_filter():
+    from anki import hooks
+
     # register our function to be called when the hook fires
     hooks.field_filter.append(my_field_filter)

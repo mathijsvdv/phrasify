@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import random
 import re
 from functools import lru_cache
+from typing import TYPE_CHECKING
 
-from anki import hooks
-from anki.template import TemplateRenderContext
-
+if TYPE_CHECKING:
+    from anki.template import TemplateRenderContext
 # Possible hooks and filters to use
 # from anki.hooks import card_did_render, field_filter
 
@@ -18,6 +20,8 @@ def cached_randrange(
     stop: int,
     context_id: int,  # noqa: ARG001 context_id is needed because we only want to cache within one card render
 ) -> int:
+    # Careful, if multiple processes are spun up, this cache might not be shared.
+    # We could use a database to share the cache.
     return random.randrange(start, stop)
 
 
@@ -38,7 +42,8 @@ def addition_filter(
         # not our filter, return string unchanged
         return field_text
 
-    match = re.match(r"add-(?P<start>[0-9]+)-(?P<stop>[0-9]+)(-(?P<qa>[qa]))?", filter_name)
+    pattern = r"add-(?P<start>[0-9]+)-(?P<stop>[0-9]+)(-(?P<qa>[qa]))?"
+    match = re.match(pattern, filter_name)
 
     if match:
         start = int(match.group("start"))
@@ -77,5 +82,7 @@ def get_answer(field_text, to_add, field_name=None):
 
 
 def init_addition_filter():
+    from anki import hooks
+
     # register our function to be called when the hook fires
     hooks.field_filter.append(addition_filter)

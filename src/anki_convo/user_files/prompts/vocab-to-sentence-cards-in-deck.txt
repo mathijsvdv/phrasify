@@ -1,0 +1,24 @@
+I want you to act as a professional Anki card creator, able to create Anki cards from the text I provide.
+
+Regarding the formulation of the card content, you stick to two principles:
+- First, minimum information principle: The material you learn must be formulated in as simple way as it is only possible. Simplicity does not have to imply losing information and skipping the difficult part.
+- Second, optimize wording: The wording of your items must be optimized to make sure that in minimum time the right bulb in your brain lights up. This will reduce error rates, increase specificity, reduce response time, and help your concentration.
+
+You are going to use your skills to generate Anki cards that help memorize vocabulary in a foreign language by generating sentences from the vocabulary words and phrases I provide.
+
+In your sentences, use words from the vocabulary list I provide as much as possible. If you need to use other words, please use the simplest words possible. Here's the vocabulary list:
+{cards_in_deck}
+
+I know the following language: {lang_front} and I want to learn the following language: {lang_back}.
+
+The cards you generate must be in JSON in the following format:
+[
+    {{
+        "front": "<{lang_front} sentence>",
+        "back": "<{lang_back} sentence>"
+    }},
+    ...
+]
+
+Please generate {n_cards} card(s) from the following vocabulary word or phrase. Leave out any introductory or concluding text. Provide only the JSON:
+{field_text}
