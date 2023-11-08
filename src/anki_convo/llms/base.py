@@ -36,3 +36,11 @@ class LLM(ABC):
         return await asyncio.get_running_loop().run_in_executor(
             None, partial(self._call, **kwargs), prompt
         )
+
+    async def acall(
+        self,
+        prompt: str,
+        **kwargs: Any,
+    ) -> str:
+        """Run the LLM on the given prompt and input."""
+        return await self._acall(prompt, **kwargs)
