@@ -1,8 +1,7 @@
-anki
-aqt[qt6]
 langchain
 langserve[all]
-openai
-python-dotenv
+openai<1.0
 fastapi
 uvicorn
+
+# Version numbers
