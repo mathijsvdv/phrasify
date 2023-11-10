@@ -9,8 +9,7 @@ from anki.template import TemplateRenderContext
 
 from .card import CardSide, TextCard
 from .chains.base import Chain
-from .chains.llm import LLMChain
-from .factory import get_card_side, get_llm, get_prompt
+from .factory import get_card_side, get_chain, get_llm_name, get_prompt
 
 # Possible hooks and filters to use
 # from anki.hooks import card_did_render, field_filter
@@ -32,7 +31,7 @@ def parse_text_card_response(response: Dict[str, str]) -> List[TextCard]:
     # But the response may be longer and require more tokens (more expensive).
     # TODO In any case, probably want to parse the response into a list of
     # dictionaries first, then convert each to cards.
-    response = response["text"]
+    response = response["result"]["text"]
     card_dicts = json.loads(response)
 
     return [
@@ -55,14 +54,23 @@ class CardGeneratorConfig:
 
 @dataclass
 class ChainCardGenerator(CardGenerator):
-    """Can be called to generate language cards from an LLM Chain."""
+    """Can be called to generate language cards from an LLMInputChain."""
 
     chain: Chain[Dict[str, Any], str]
-    chain_input: Dict[str, Any]
+    llm: str
+    prompt: str
+    prompt_inputs: Dict[str, Any]
 
     @property
     def n_cards(self) -> int:
-        return self.chain_input.get("n_cards", 1)
+        return self.prompt_inputs.get("n_cards", 1)
+
+    def get_chain_inputs(self, field_text: str) -> Dict[str, Any]:
+        return {
+            "llm": self.llm,  # TODO Should this be a string or an LLM object?
+            "prompt": self.prompt,
+            "prompt_inputs": dict(**self.prompt_inputs, field_text=field_text),
+        }
 
     def __call__(self, field_text: str) -> List[TextCard]:
         """Generate multiple language cards from the front text inserted into a
@@ -70,8 +78,8 @@ class ChainCardGenerator(CardGenerator):
         if self.n_cards == 0:
             return []
 
-        chain_input = dict(**self.chain_input, field_text=field_text)
-        response = self.chain(chain_input)
+        chain_inputs = self.get_chain_inputs(field_text)
+        response = self.chain(chain_inputs)
         cards = parse_text_card_response(response)
 
         return cards
@@ -79,14 +87,18 @@ class ChainCardGenerator(CardGenerator):
 
 def create_card_generator(config: CardGeneratorConfig):
     """Create a CardGenerator from the config."""
-    llm = get_llm()
+    llm_name = get_llm_name()
     prompt = get_prompt(config.prompt_name)
-    chain = LLMChain(llm=llm, prompt=prompt)
+    chain = get_chain()
 
-    chain_input = {"n_cards": 1}
-    chain_input.update({"lang_front": config.lang_front, "lang_back": config.lang_back})
+    prompt_inputs = {"n_cards": 1}
+    prompt_inputs.update(
+        {"lang_front": config.lang_front, "lang_back": config.lang_back}
+    )
 
-    card_generator = ChainCardGenerator(chain=chain, chain_input=chain_input)
+    card_generator = ChainCardGenerator(
+        chain=chain, llm=llm_name, prompt=prompt, prompt_inputs=prompt_inputs
+    )
     return lru_cache(maxsize=None)(card_generator)
 
 
