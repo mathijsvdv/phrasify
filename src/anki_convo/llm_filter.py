@@ -2,14 +2,15 @@ import json
 import re
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from anki import hooks
 from anki.template import TemplateRenderContext
 
 from .card import CardSide, TextCard
+from .chains.base import Chain
+from .chains.llm import LLMChain
 from .factory import get_card_side, get_llm, get_prompt
-from .llms.base import LLM
 
 # Possible hooks and filters to use
 # from anki.hooks import card_did_render, field_filter
@@ -53,15 +54,15 @@ class CardGeneratorConfig:
 
 
 @dataclass
-class LanguageCardGenerator(CardGenerator):
-    """Can be called to generate language cards from the front text inserted into a
-    prompt."""
+class ChainCardGenerator(CardGenerator):
+    """Can be called to generate language cards from an LLM Chain."""
 
-    llm: LLM
-    prompt: str
-    lang_front: str
-    lang_back: str
-    n_cards: int = 1
+    chain: Chain[Dict[str, Any], str]
+    chain_input: Dict[str, Any]
+
+    @property
+    def n_cards(self) -> int:
+        return self.chain_input.get("n_cards", 1)
 
     def __call__(self, field_text: str) -> List[TextCard]:
         """Generate multiple language cards from the front text inserted into a
@@ -69,25 +70,23 @@ class LanguageCardGenerator(CardGenerator):
         if self.n_cards == 0:
             return []
 
-        prompt = self.prompt.format(
-            field_text=field_text,
-            lang_front=self.lang_front,
-            lang_back=self.lang_back,
-            n_cards=self.n_cards,
-        )
-        response = self.llm(prompt)
+        chain_input = dict(**self.chain_input, field_text=field_text)
+        response = self.chain(chain_input)
         cards = parse_text_card_response(response)
 
         return cards
 
 
 def create_card_generator(config: CardGeneratorConfig):
-    """Create a LanguageCardGenerator from the config."""
+    """Create a CardGenerator from the config."""
     llm = get_llm()
     prompt = get_prompt(config.prompt_name)
-    card_generator = LanguageCardGenerator(
-        llm=llm, prompt=prompt, lang_front=config.lang_front, lang_back=config.lang_back
-    )
+    chain = LLMChain(llm=llm, prompt=prompt)
+
+    chain_input = {"n_cards": 1}
+    chain_input.update({"lang_front": config.lang_front, "lang_back": config.lang_back})
+
+    card_generator = ChainCardGenerator(chain=chain, chain_input=chain_input)
     return lru_cache(maxsize=None)(card_generator)
 
 
@@ -173,13 +172,13 @@ def parse_llm_filter_name(filter_name: str) -> LLMFilterConfig:
 
 
 class CachedCardGeneratorFactory:
-    """Create a LanguageCardGenerator from the config. Cache the result."""
+    """Create a CardGenerator from the config. Cache the result."""
 
     def __init__(self, context_id: int):
         self.context_id = context_id
         self._call = lru_cache(maxsize=None)(create_card_generator)
 
-    def __call__(self, config: CardGeneratorConfig) -> LanguageCardGenerator:
+    def __call__(self, config: CardGeneratorConfig) -> CardGenerator:
         return self._call(config)
 
 
