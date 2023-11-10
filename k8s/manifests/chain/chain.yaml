@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anki-convo-chain-deployment
+  labels:
+    app: anki-convo-chain
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: anki-convo-chain
+  template:
+    metadata:
+      labels:
+        app: anki-convo-chain
+    spec:
+      containers:
+      - name: anki-convo-chain
+        image: mathijsvdv/anki-convo-chain
+        ports:
+        - containerPort: 8800
+        resources:
+          limits:
+            cpu: 500m
+            memory: 500Mi
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: anki-convo-chain-secret
+              key: OPENAI_API_KEY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: anki-convo-chain-service
+spec:
+  selector:
+    app: anki-convo-chain
+  ports:
+  - protocol: TCP
+    port: 8800
+    targetPort: 8800
+    nodePort: 30800
+  type: LoadBalancer

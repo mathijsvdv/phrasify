@@ -2,20 +2,20 @@ import json
 import re
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from anki import hooks
 from anki.template import TemplateRenderContext
 
 from .card import CardSide, TextCard
-from .factory import get_card_side, get_llm, get_prompt
-from .llms.base import LLM
+from .chains.base import Chain
+from .factory import get_card_side, get_chain, get_llm_name, get_prompt
 
 # Possible hooks and filters to use
 # from anki.hooks import card_did_render, field_filter
 
 
-def parse_text_card_response(response: str) -> List[TextCard]:
+def parse_text_card_response(response: Dict[str, str]) -> List[TextCard]:
     """Parse the response from an LLM into a list of TextCard objects"""
     # TODO If using CSV, need to be robust to:
     #   - Multiple sentences
@@ -31,7 +31,7 @@ def parse_text_card_response(response: str) -> List[TextCard]:
     # But the response may be longer and require more tokens (more expensive).
     # TODO In any case, probably want to parse the response into a list of
     # dictionaries first, then convert each to cards.
-
+    response = response["result"]["text"]
     card_dicts = json.loads(response)
 
     return [
@@ -53,15 +53,24 @@ class CardGeneratorConfig:
 
 
 @dataclass
-class LanguageCardGenerator(CardGenerator):
-    """Can be called to generate language cards from the front text inserted into a
-    prompt."""
+class ChainCardGenerator(CardGenerator):
+    """Can be called to generate language cards from an LLMInputChain."""
 
-    llm: LLM
+    chain: Chain[Dict[str, Any], str]
+    llm: str
     prompt: str
-    lang_front: str
-    lang_back: str
-    n_cards: int = 1
+    prompt_inputs: Dict[str, Any]
+
+    @property
+    def n_cards(self) -> int:
+        return self.prompt_inputs.get("n_cards", 1)
+
+    def get_chain_inputs(self, field_text: str) -> Dict[str, Any]:
+        return {
+            "llm": self.llm,  # TODO Should this be a string or an LLM object?
+            "prompt": self.prompt,
+            "prompt_inputs": dict(**self.prompt_inputs, field_text=field_text),
+        }
 
     def __call__(self, field_text: str) -> List[TextCard]:
         """Generate multiple language cards from the front text inserted into a
@@ -69,24 +78,26 @@ class LanguageCardGenerator(CardGenerator):
         if self.n_cards == 0:
             return []
 
-        prompt = self.prompt.format(
-            field_text=field_text,
-            lang_front=self.lang_front,
-            lang_back=self.lang_back,
-            n_cards=self.n_cards,
-        )
-        response = self.llm(prompt)
+        chain_inputs = self.get_chain_inputs(field_text)
+        response = self.chain(chain_inputs)
         cards = parse_text_card_response(response)
 
         return cards
 
 
 def create_card_generator(config: CardGeneratorConfig):
-    """Create a LanguageCardGenerator from the config."""
-    llm = get_llm()
+    """Create a CardGenerator from the config."""
+    llm_name = get_llm_name()
     prompt = get_prompt(config.prompt_name)
-    card_generator = LanguageCardGenerator(
-        llm=llm, prompt=prompt, lang_front=config.lang_front, lang_back=config.lang_back
+    chain = get_chain()
+
+    prompt_inputs = {"n_cards": 1}
+    prompt_inputs.update(
+        {"lang_front": config.lang_front, "lang_back": config.lang_back}
+    )
+
+    card_generator = ChainCardGenerator(
+        chain=chain, llm=llm_name, prompt=prompt, prompt_inputs=prompt_inputs
     )
     return lru_cache(maxsize=None)(card_generator)
 
@@ -173,13 +184,13 @@ def parse_llm_filter_name(filter_name: str) -> LLMFilterConfig:
 
 
 class CachedCardGeneratorFactory:
-    """Create a LanguageCardGenerator from the config. Cache the result."""
+    """Create a CardGenerator from the config. Cache the result."""
 
     def __init__(self, context_id: int):
         self.context_id = context_id
         self._call = lru_cache(maxsize=None)(create_card_generator)
 
-    def __call__(self, config: CardGeneratorConfig) -> LanguageCardGenerator:
+    def __call__(self, config: CardGeneratorConfig) -> CardGenerator:
         return self._call(config)
 
 

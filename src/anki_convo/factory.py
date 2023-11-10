@@ -8,22 +8,41 @@ from pathlib import Path
 from typing import Optional
 
 from .card import CardSide
+from .chains.llm_input import LLMInputChain
+from .chains.remote import RemoteChain
 from .config import config
 from .llms.openai import OpenAI
 
-__all__ = ["get_llm", "get_prompt", "get_card_side"]
+__all__ = ["get_llm", "get_prompt", "get_card_side", "get_chain"]
+
+
+def get_llm_name(llm_name: Optional[str] = None):
+    """Get the LLM name. If none is given, use the default from the config."""
+    if llm_name is None:
+        llm_name = config["llm"]
+
+    return llm_name
 
 
 def get_llm(llm_name: Optional[str] = None):
     """Get the LLM object for the given LLM name."""
-    if llm_name is None:
-        llm_name = config["llm"]
+    llm_name = get_llm_name(llm_name)
 
     if llm_name.startswith("gpt-"):
         return OpenAI(llm_name)
     else:
         msg = f"Invalid LLM name: {llm_name}"
         raise ValueError(msg)
+
+
+def get_chain(chain_api_url: Optional[str] = None):
+    if chain_api_url is None:
+        chain_api_url = config["chainApiUrl"]
+
+    if chain_api_url is None:
+        return LLMInputChain()
+
+    return RemoteChain(api_url=chain_api_url)
 
 
 prompt_folder = Path(__file__).parent / "user_files" / "prompts"

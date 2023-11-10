@@ -1,5 +1,7 @@
 .PHONY: ankisync init
 
+CHAIN_API_PORT := 8800
+CHAIN_IMAGE := anki-convo-chain
 WIN_APPDATA := $(shell wslpath "$$(wslvar APPDATA)")
 ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/9999999999
 SITE_PACKAGES_PATH := ./.direnv/anki-convo/lib/python3.9/site-packages
@@ -22,3 +24,11 @@ init:
 	hatch env create
 	hatch run python -m ipykernel install --user --name anki-convo --display-name "Python (anki-convo)"
 	hatch run python -m nbstripout --install --attributes .gitattributes
+
+serve_chain:
+	cd ./k8s/manifests/chain &&	uvicorn app.main:app --port $(CHAIN_API_PORT) --reload
+
+docker_push_chain:
+	cd ./k8s/manifests/chain && docker build -t ${CHAIN_IMAGE} .
+	docker tag ${CHAIN_IMAGE} mathijsvdv/${CHAIN_IMAGE}
+	docker push mathijsvdv/${CHAIN_IMAGE}

@@ -1,11 +1,12 @@
 import pytest
 
 from anki_convo.card import TextCard
+from anki_convo.chains.llm import LLMChain
 from anki_convo.factory import get_card_side, get_prompt
 from anki_convo.llm_filter import (
     CardGenerator,
     CardGeneratorConfig,
-    LanguageCardGenerator,
+    ChainCardGenerator,
     LLMFilter,
     LLMFilterConfig,
     parse_llm_filter_name,
@@ -86,12 +87,17 @@ def n_cards(request):
 
 @pytest.fixture()
 def language_card_generator(n_cards):
-    generator = LanguageCardGenerator(
-        llm=OpenAI(model="gpt-3.5-turbo"),
-        prompt=get_prompt("vocab-to-sentence"),
-        lang_front="English",
-        lang_back="Ukrainian",
-        n_cards=n_cards,
+    chain = LLMChain(
+        llm=OpenAI(model="gpt-3.5-turbo"), prompt=get_prompt("vocab-to-sentence")
+    )
+
+    generator = ChainCardGenerator(
+        chain=chain,
+        chain_input={
+            "lang_front": "English",
+            "lang_back": "Ukrainian",
+            "n_cards": n_cards,
+        },
     )
     return generator
 
