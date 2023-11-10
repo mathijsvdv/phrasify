@@ -16,7 +16,7 @@ from .factory import get_card_side, get_llm, get_prompt
 # from anki.hooks import card_did_render, field_filter
 
 
-def parse_text_card_response(response: str) -> List[TextCard]:
+def parse_text_card_response(response: Dict[str, str]) -> List[TextCard]:
     """Parse the response from an LLM into a list of TextCard objects"""
     # TODO If using CSV, need to be robust to:
     #   - Multiple sentences
@@ -32,7 +32,7 @@ def parse_text_card_response(response: str) -> List[TextCard]:
     # But the response may be longer and require more tokens (more expensive).
     # TODO In any case, probably want to parse the response into a list of
     # dictionaries first, then convert each to cards.
-
+    response = response["text"]
     card_dicts = json.loads(response)
 
     return [
