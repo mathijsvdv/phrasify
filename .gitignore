@@ -165,3 +165,4 @@ cython_debug/
 
 # Kubernetes secrets shouldn't be checked in
 secrets.yaml
+!k8s/clusters/example/secrets.yaml
