@@ -32,3 +32,9 @@ docker_push_chain:
 	cd ./k8s/manifests/chain && docker build -t ${CHAIN_IMAGE} .
 	docker tag ${CHAIN_IMAGE} mathijsvdv/${CHAIN_IMAGE}
 	docker push mathijsvdv/${CHAIN_IMAGE}
+
+deploy_chain:
+	kubectl apply -f ./k8s/manifests/chain
+
+deploy_ollama:
+	kubectl apply -f ./k8s/manifests/ollama
