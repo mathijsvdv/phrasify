@@ -18,7 +18,7 @@ metadata:
   labels:
     app: ollama
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: ollama
