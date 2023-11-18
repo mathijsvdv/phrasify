@@ -39,15 +39,10 @@ spec:
           limits:
             cpu: 1000m
             memory: 8Gi
-            nvidia.com/gpu: 1  # requesting 1 GPU
       volumes:
       - name: ollama
         persistentVolumeClaim:
           claimName: ollama
-      tolerations:
-      - key: "nvidia.com/gpu"
-        operator: "Exists"
-        effect: "NoSchedule"
 ---
 apiVersion: v1
 kind: Service
