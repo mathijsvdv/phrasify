@@ -38,6 +38,7 @@ deploy_chain:
 
 deploy_ollama:
 	kubectl apply -f ./k8s/manifests/ollama
+	ollama pull mistral
 
 delete_chain:
 	kubectl delete -f ./k8s/manifests/chain
