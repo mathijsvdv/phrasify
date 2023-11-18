@@ -38,3 +38,9 @@ deploy_chain:
 
 deploy_ollama:
 	kubectl apply -f ./k8s/manifests/ollama
+
+delete_chain:
+	kubectl delete -f ./k8s/manifests/chain
+
+delete_ollama:
+	kubectl delete -f ./k8s/manifests/ollama
