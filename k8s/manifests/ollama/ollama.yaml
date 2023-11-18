@@ -1,3 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: ollama
+  name: ollama
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -5,7 +18,7 @@ metadata:
   labels:
     app: ollama
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: ollama
@@ -19,10 +32,22 @@ spec:
         image: ollama/ollama
         ports:
         - containerPort: 11434
+        volumeMounts:
+        - mountPath: /root/.ollama
+          name: ollama
         resources:
           limits:
             cpu: 1000m
-            memory: 4Gi
+            memory: 8Gi
+            nvidia.com/gpu: 1  # requesting 1 GPU
+      volumes:
+      - name: ollama
+        persistentVolumeClaim:
+          claimName: ollama
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
 ---
 apiVersion: v1
 kind: Service
