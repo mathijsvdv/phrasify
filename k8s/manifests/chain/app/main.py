@@ -1,3 +1,4 @@
+import re
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI
@@ -7,6 +8,7 @@ from langchain.callbacks.manager import (
 )
 from langchain.chains import LLMChain
 from langchain.chains.base import Chain
+from langchain.chat_models.ollama import ChatOllama
 from langchain.chat_models.openai import ChatOpenAI
 from langchain.llms.base import LLM
 from langchain.prompts import PromptTemplate
@@ -16,6 +18,10 @@ from langserve import add_routes
 def get_llm(llm_name: str) -> LLM:
     if llm_name.startswith("gpt-"):
         return ChatOpenAI(model=llm_name)
+    elif llm_name.startswith("ollama-"):
+        ollama_re = re.compile(r"ollama-(?P<ollama_name>.*)")
+        ollama_name = ollama_re.match(llm_name).group("ollama_name")
+        return ChatOllama(model=ollama_name)
     else:
         msg = f"Invalid LLM name: {llm_name}"
         raise ValueError(msg)
