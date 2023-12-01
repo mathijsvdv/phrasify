@@ -1,7 +1,9 @@
 import asyncio
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, Optional, TypeVar
+
+from ..error import ChainError
 
 TIn_contra = TypeVar("TIn_contra", contravariant=True)
 TOut_co = TypeVar("TOut_co", covariant=True)
@@ -49,3 +51,9 @@ class Chain(ABC, Generic[TIn_contra, TOut_co], Callable[[TIn_contra], TOut_co]):
     ) -> TOut_co:
         """Run the LLM async on the given input `x`."""
         return await self._acall(x, **kwargs)
+
+    def _raise(
+        self, error: Optional[Exception] = None, message: Optional[str] = None
+    ) -> ChainError:
+        """Raise an Exception from the given error."""
+        raise Exception(message) from error
