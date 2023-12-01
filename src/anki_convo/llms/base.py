@@ -1,7 +1,9 @@
 import asyncio
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Any
+from typing import Any, Optional
+
+from ..error import LLMError
 
 
 class LLM(ABC):
@@ -44,3 +46,9 @@ class LLM(ABC):
     ) -> str:
         """Run the LLM on the given prompt and input."""
         return await self._acall(prompt, **kwargs)
+
+    def _raise(
+        self, error: Optional[Exception] = None, message: Optional[str] = None
+    ) -> LLMError:
+        """Raise an LLMError from the given error."""
+        raise LLMError(message) from error

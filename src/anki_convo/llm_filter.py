@@ -9,6 +9,7 @@ from anki.template import TemplateRenderContext
 
 from .card import CardSide, TextCard
 from .chains.base import Chain
+from .error import CardGenerationError, ChainError
 from .factory import get_card_side, get_chain, get_llm_name, get_prompt
 
 # Possible hooks and filters to use
@@ -79,7 +80,12 @@ class ChainCardGenerator(CardGenerator):
             return []
 
         chain_inputs = self.get_chain_inputs(field_text)
-        response = self.chain(chain_inputs)
+        try:
+            response = self.chain(chain_inputs)
+        except ChainError as e:
+            msg = f"Error generating card using chain inputs: {chain_inputs}"
+            raise CardGenerationError(msg) from e
+
         cards = parse_text_card_response(response)
 
         return cards
@@ -130,7 +136,13 @@ class LLMFilter:
                 f"(f{self.card_side.value} side)>"
             )
 
-        cards = self.card_generator(field_text=field_text)
+        try:
+            cards = self.card_generator(field_text=field_text)
+        except CardGenerationError:
+            # Error generating card, return the field text unchanged
+            # print(f"Error in card generator: {e}\nReturning field text unchanged")
+            return field_text
+
         if not cards:
             # No cards generated, return the field text unchanged
             return field_text

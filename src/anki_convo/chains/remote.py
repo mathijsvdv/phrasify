@@ -26,5 +26,8 @@ class RemoteChain(Chain[Dict[str, Any], Union[str, Dict[str, Any]]]):
     ) -> Union[str, Dict[str, Any]]:
         """Run the chain on the given input `x`."""
         response = requests.post(self.invoke_url, json={"input": x}, timeout=30)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            self._raise(e)
         return response.json()["output"]

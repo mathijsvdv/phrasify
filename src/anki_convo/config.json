@@ -1,1 +1,1 @@
-{"llm": "gpt-3.5-turbo", "chainApiUrl": "http://localhost:8800/chain"}
+{"llm": "gpt-3.5-turbo", "chainApiUrl": null}

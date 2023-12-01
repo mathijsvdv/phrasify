@@ -15,9 +15,13 @@ class OpenAI(LLM):
     def _call(self, prompt: str, **kwargs: Any) -> str:
         """Run the LLM on the given prompt and input."""
         messages = [{"role": "user", "content": prompt}]
-        completion = openai.ChatCompletion.create(
-            model=self.model,
-            messages=messages,
-            **kwargs,
-        )
+        try:
+            completion = openai.ChatCompletion.create(
+                model=self.model,
+                messages=messages,
+                **kwargs,
+            )
+        except openai.error.OpenAIError as e:
+            self._raise(e)
+
         return completion.choices[0].message.content
