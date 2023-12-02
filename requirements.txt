@@ -6,3 +6,4 @@ openai
 python-dotenv
 fastapi
 uvicorn
+yaml
