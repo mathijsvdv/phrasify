@@ -80,6 +80,13 @@ class ChainCardGenerator(CardGenerator):
     def __call__(self, field_text: str) -> List[TextCard]:
         """Generate multiple language cards from the front text inserted into a
         prompt."""
+        logger.debug(
+            f"{self.__class__.__name__} generating {self.n_cards} cards "
+            f"from field text {field_text!r},"
+            f"using chain {self.chain} with llm {self.llm!r}. "
+            f"Here is the prompt template:\n'''{self.prompt}'''\n"
+            f"Prompt inputs are {self.prompt_inputs}"
+        )
         if self.n_cards == 0:
             return []
 
@@ -140,10 +147,6 @@ class LLMFilter:
                 f"(f{self.card_side.value} side)>"
             )
 
-        logger.debug(
-            f"Generating cards from field text {field_text!r}, "
-            f"using generator:\n{self.card_generator}"
-        )
         try:
             cards = self.card_generator(field_text=field_text)
         except CardGenerationError as e:
