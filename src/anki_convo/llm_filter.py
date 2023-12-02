@@ -11,9 +11,13 @@ from .card import CardSide, TextCard
 from .chains.base import Chain
 from .error import CardGenerationError, ChainError
 from .factory import get_card_side, get_chain, get_llm_name, get_prompt
+from .logging import get_logger
 
 # Possible hooks and filters to use
 # from anki.hooks import card_did_render, field_filter
+
+
+logger = get_logger(__name__)
 
 
 def parse_text_card_response(response: Dict[str, str]) -> List[TextCard]:
@@ -76,6 +80,13 @@ class ChainCardGenerator(CardGenerator):
     def __call__(self, field_text: str) -> List[TextCard]:
         """Generate multiple language cards from the front text inserted into a
         prompt."""
+        logger.debug(
+            f"{self.__class__.__name__} generating {self.n_cards} cards "
+            f"from field text {field_text!r},"
+            f"using chain {self.chain} with llm {self.llm!r}. "
+            f"Here is the prompt template:\n'''{self.prompt}'''\n"
+            f"Prompt inputs are {self.prompt_inputs}"
+        )
         if self.n_cards == 0:
             return []
 
@@ -138,12 +149,18 @@ class LLMFilter:
 
         try:
             cards = self.card_generator(field_text=field_text)
-        except CardGenerationError:
+        except CardGenerationError as e:
             # Error generating card, return the field text unchanged
-            # print(f"Error in card generator: {e}\nReturning field text unchanged")
+            logger.error(
+                f"Error in card generator: {e}\nReturning field text "
+                f"{field_text!r} unchanged"
+            )
             return field_text
 
         if not cards:
+            logger.warning(
+                f"No cards generated. Returning field text {field_text!r} unchanged"
+            )
             # No cards generated, return the field text unchanged
             return field_text
 
