@@ -4,13 +4,13 @@ These functions are used to parse user input.
 """
 
 from functools import lru_cache
-from pathlib import Path
 from typing import Optional
 
 from .card import CardSide
 from .chains.llm_input import LLMInputChain
 from .chains.remote import RemoteChain
 from .config import config
+from .constants import PROMPT_DIR
 from .llms.openai import OpenAI
 
 __all__ = ["get_llm", "get_prompt", "get_card_side", "get_chain"]
@@ -45,13 +45,10 @@ def get_chain(chain_api_url: Optional[str] = None):
     return RemoteChain(api_url=chain_api_url)
 
 
-prompt_folder = Path(__file__).parent / "user_files" / "prompts"
-
-
 @lru_cache(maxsize=None)
 def get_prompt(prompt_name: str):
     """Get the prompt text for the given prompt name."""
-    prompt_path = prompt_folder / f"{prompt_name}.txt"
+    prompt_path = PROMPT_DIR / f"{prompt_name}.txt"
     with open(prompt_path) as f:
         prompt = f.read()
     return prompt

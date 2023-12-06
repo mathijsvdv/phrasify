@@ -5,9 +5,7 @@ from typing import Optional
 import yaml
 
 from .__about__ import NAME
-from ._paths import ROOT_DIR
-
-LOGGING_CONFIG_PATH = ROOT_DIR / "logging_config.yaml"
+from .constants import LOGGING_CONFIG_PATH
 
 
 def setup_logging():
