@@ -1,5 +1,5 @@
 import sys
-from pathlib import Path
 
-ROOT_DIR = Path(__file__).parent
-sys.path.append(str(ROOT_DIR / "lib"))
+from .constants import LIB_DIR
+
+sys.path.append(str(LIB_DIR))
