@@ -1,14 +1,16 @@
 import json
 import re
+from collections import deque
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Deque, Dict, Iterable, List, Optional
 
 from anki import hooks
 from anki.template import TemplateRenderContext
 
 from .card import CardSide, TextCard
 from .chains.base import Chain
+from .constants import GENERATED_CARDS_DIR
 from .error import CardGenerationError, ChainError
 from .factory import get_card_side, get_chain, get_llm_name, get_prompt
 from .logging import get_logger
@@ -39,13 +41,11 @@ def parse_text_card_response(response: Dict[str, str]) -> List[TextCard]:
     response = response["result"]["text"]
     card_dicts = json.loads(response)
 
-    return [
-        TextCard(front=card_dict["front"], back=card_dict["back"])
-        for card_dict in card_dicts
-    ]
+    return [TextCard.from_dict(card_dict) for card_dict in card_dicts]
 
 
-CardGenerator = Callable[[str], List[TextCard]]
+CardGenerator = Callable[[str], Iterable[TextCard]]
+CardFactory = Callable[[str], TextCard]
 
 
 @dataclass(frozen=True)
@@ -84,8 +84,6 @@ class ChainCardGenerator(CardGenerator):
             f"{self.__class__.__name__} generating {self.n_cards} cards "
             f"from field text {field_text!r},"
             f"using chain {self.chain} with llm {self.llm!r}. "
-            f"Here is the prompt template:\n'''{self.prompt}'''\n"
-            f"Prompt inputs are {self.prompt_inputs}"
         )
         if self.n_cards == 0:
             return []
@@ -102,24 +100,126 @@ class ChainCardGenerator(CardGenerator):
         return cards
 
 
-def create_card_generator(config: CardGeneratorConfig):
+class TextCardEncoder(json.JSONEncoder):
+    """JSON encoder for TextCard objects."""
+
+    def default(self, o: Any) -> Any:
+        if isinstance(o, TextCard):
+            return o.to_dict()
+        return super().default(o)
+
+
+class JSONCachedCardGenerator(CardGenerator):
+    """Can be called to generate language cards. Cache the result as a JSON."""
+
+    def __init__(
+        self, card_generator: CardGenerator, min_cards: int = 5, name: str = "default"
+    ):
+        self.card_generator = card_generator
+        self.min_cards = min_cards
+        self.name = name
+
+    def get_cache_path(self, field_text: str) -> str:
+        """Get the path to the cache file."""
+        # TODO Need to put the card ID in the cache path, so that we can have
+        # different cards with the same field_text.
+
+        return GENERATED_CARDS_DIR / f"{self.name}_{field_text}.json"
+
+    def get_from_cache(self, field_text: str) -> Deque[TextCard]:
+        """Get the cards from the cache, if they exist."""
+        cache_path = self.get_cache_path(field_text)
+        try:
+            with open(cache_path) as f:
+                cards = json.load(f, object_hook=TextCard.from_dict)
+
+        except FileNotFoundError:
+            cards = []
+
+        return deque(cards)
+
+    def write_to_cache(self, field_text: str, cards: Iterable[TextCard]):
+        """Write the cards to the cache."""
+        cache_path = self.get_cache_path(field_text)
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(cache_path, "w") as f:
+            json.dump(list(cards), f, cls=TextCardEncoder)
+
+    def __call__(self, field_text: str) -> List[TextCard]:
+        """Generate language cards from the front text inserted into a prompt."""
+        cards = self.get_from_cache(field_text)
+        logger.debug(
+            f"Retrieving {len(cards)} cards from cache for field text {field_text!r}"
+        )
+
+        while True:
+            if len(cards) < self.min_cards:
+                logger.debug(
+                    f"Cache has {len(cards)} < {self.min_cards} cards, "
+                    f"generating more for field text {field_text!r}"
+                )
+                new_cards = self.card_generator(field_text)
+                cards.extend(new_cards)
+                logger.debug(
+                    f"Extended cache with {len(new_cards)} new cards "
+                    f"for field text {field_text!r}"
+                )
+
+            card = cards.popleft()
+            self.write_to_cache(field_text, cards)
+            yield card
+
+
+class NextCardFactory(CardFactory):
+    """Can be called to take the next language card from a card generator."""
+
+    def __init__(self, card_generator: CardGenerator):
+        self.card_generator = card_generator
+        self._card_iterator = None
+
+    def __call__(self, field_text: str) -> TextCard:
+        """Take next language card from the front text inserted into a prompt."""
+
+        if self._card_iterator is None:
+            try:
+                self._card_iterator = iter(self.card_generator(field_text))
+            except CardGenerationError as e:
+                logger.error(f"Error in card generator: {e}")
+                self._card_iterator = iter([])
+
+        try:
+            card = next(self._card_iterator)
+        except StopIteration:
+            card = TextCard(front=field_text, back=field_text)
+            logger.warning(f"No cards generated. Creating placeholder card {card}")
+
+        return card
+
+
+def create_card_factory(config: CardGeneratorConfig):
     """Create a CardGenerator from the config."""
     llm_name = get_llm_name()
     prompt = get_prompt(config.prompt_name)
     chain = get_chain()
 
-    prompt_inputs = {"n_cards": 1}
+    prompt_inputs = {"n_cards": 10}
     prompt_inputs.update(
         {"lang_front": config.lang_front, "lang_back": config.lang_back}
     )
 
+    name = f"{config.prompt_name}_{config.lang_front}_{config.lang_back}"
     card_generator = ChainCardGenerator(
         chain=chain, llm=llm_name, prompt=prompt, prompt_inputs=prompt_inputs
     )
-    return lru_cache(maxsize=None)(card_generator)
+    card_generator = JSONCachedCardGenerator(card_generator, name=name)
+
+    card_factory = NextCardFactory(card_generator)
+    card_factory = lru_cache(maxsize=None)(card_factory)
+    return card_factory
 
 
 CardGeneratorFactory = Callable[[CardGeneratorConfig], CardGenerator]
+CardFactoryCreator = Callable[[CardGeneratorConfig], CardFactory]
 
 
 @dataclass(frozen=True)
@@ -135,8 +235,8 @@ class LLMFilter:
     """Filter that generates the front or back of a language card from the front text
     inserted into a prompt."""
 
-    def __init__(self, card_generator: CardGenerator, card_side: CardSide):
-        self.card_generator = card_generator
+    def __init__(self, card_factory: CardFactory, card_side: CardSide):
+        self.card_factory = card_factory
         self.card_side = card_side
 
     def __call__(self, field_text: str, field_name: str) -> str:
@@ -147,38 +247,21 @@ class LLMFilter:
                 f"(f{self.card_side.value} side)>"
             )
 
-        try:
-            cards = self.card_generator(field_text=field_text)
-        except CardGenerationError as e:
-            # Error generating card, return the field text unchanged
-            logger.error(
-                f"Error in card generator: {e}\nReturning field text "
-                f"{field_text!r} unchanged"
-            )
-            return field_text
-
-        if not cards:
-            logger.warning(
-                f"No cards generated. Returning field text {field_text!r} unchanged"
-            )
-            # No cards generated, return the field text unchanged
-            return field_text
-
-        card = next(iter(self.card_generator(field_text=field_text)))
+        card = self.card_factory(field_text)
         return getattr(card, self.card_side.value)
 
 
 def create_llm_filter(
     config: LLMFilterConfig,
-    card_generator_factory: Optional[CardGeneratorFactory] = None,
+    card_factory_creator: Optional[CardFactoryCreator] = None,
 ):
     """Create an LLMFilter from the config."""
-    if card_generator_factory is None:
-        card_generator_factory = create_card_generator
+    if card_factory_creator is None:
+        card_factory_creator = create_card_factory
 
-    card_generator = card_generator_factory(config.card_generator)
+    card_factory = card_factory_creator(config.card_generator)
     card_side = get_card_side(config.card_side)
-    return LLMFilter(card_generator=card_generator, card_side=card_side)
+    return LLMFilter(card_factory=card_factory, card_side=card_side)
 
 
 def parse_llm_filter_name(filter_name: str) -> LLMFilterConfig:
@@ -212,18 +295,18 @@ def parse_llm_filter_name(filter_name: str) -> LLMFilterConfig:
     return llm_filter_config
 
 
-class CachedCardGeneratorFactory:
+class CachedCardFactoryCreator:
     """Create a CardGenerator from the config. Cache the result."""
 
     def __init__(self, context_id: int):
         self.context_id = context_id
-        self._call = lru_cache(maxsize=None)(create_card_generator)
+        self._call = lru_cache(maxsize=None)(create_card_factory)
 
-    def __call__(self, config: CardGeneratorConfig) -> CardGenerator:
+    def __call__(self, config: CardGeneratorConfig) -> CardFactory:
         return self._call(config)
 
 
-cached2_card_generator_factory = lru_cache(maxsize=1)(CachedCardGeneratorFactory)
+cached2_card_factory_creator = lru_cache(maxsize=1)(CachedCardFactoryCreator)
 
 
 def llm_filter(
@@ -262,10 +345,8 @@ def llm_filter(
     except ValueError:
         return invalid_name(filter_name)
 
-    card_generator_factory = cached2_card_generator_factory(context_id=id(context))
-    filt = create_llm_filter(
-        filter_config, card_generator_factory=card_generator_factory
-    )
+    card_factory_creator = cached2_card_factory_creator(context_id=id(context))
+    filt = create_llm_filter(filter_config, card_factory_creator=card_factory_creator)
 
     return filt(field_text=field_text, field_name=field_name)
 
