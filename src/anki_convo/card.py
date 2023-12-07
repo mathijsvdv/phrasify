@@ -33,3 +33,10 @@ class TextCard:
         if not (_is_non_empty_string(self.front) and _is_non_empty_string(self.back)):
             msg = f"Front and back must be non-empty strings: {self}"
             raise ValueError(msg)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "TextCard":
+        return cls(front=d["front"], back=d["back"])
+
+    def to_dict(self) -> dict:
+        return {"front": self.front, "back": self.back}
