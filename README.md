@@ -16,7 +16,7 @@ Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into 
 
 ## Development
 ### Branching strategy
-This project uses the [https://githubflow.github.io/](GitHub Flow) branching strategy. No pushes to `main` are allowed, only pull requests from feature branches that branch off of `main`. Each feature branch has the following naming convention:
+This project uses the [GitHub Flow](https://githubflow.github.io/]) branching strategy. No pushes to `main` are allowed, only pull requests from feature branches that branch off of `main`. Each feature branch has the following naming convention:
 ```
 git branch <issue-id>-<description-in-kebab-case>
 ```
