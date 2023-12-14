@@ -20,6 +20,7 @@ ankisync:
 
 init:
 	pre-commit install
+	pre-commit install --hook-type commit-msg
 	pre-commit autoupdate
 	hatch env create
 	hatch run python -m ipykernel install --user --name anki-convo --display-name "Python (anki-convo)"
