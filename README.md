@@ -1,4 +1,6 @@
 # AnkiConvo
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mathijsvdv/anki-convo/main.svg)](https://results.pre-commit.ci/latest/github/mathijsvdv/anki-convo/main)
+
 Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into fresh sentences on the fly and have conversations using your vocabulary.
 
 -----
