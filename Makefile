@@ -6,6 +6,7 @@ WIN_APPDATA := $(shell wslpath "$$(wslvar APPDATA)")
 ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/9999999999
 SITE_PACKAGES_PATH := ./.direnv/anki-convo/lib/python3.9/site-packages
 REQUIREMENTS := yaml openai aiohttp aiosignal async_timeout charset_normalizer frozenlist multidict yarl tqdm dotenv
+K8S_ENV?=dev
 
 ankisync:
 	rsync -avz ./src/anki_convo/ ${ANKI_ADDON_PATH}/ --delete \
@@ -27,9 +28,16 @@ init:
 	hatch run python -m nbstripout --install --attributes .gitattributes
 
 serve_chain:
-	cd ./k8s/manifests/chain &&	uvicorn app.main:app --port $(CHAIN_API_PORT) --reload
+	cd ./k8s/apps/chain &&	uvicorn app.main:app --port $(CHAIN_API_PORT) --reload
 
 docker_push_chain:
-	cd ./k8s/manifests/chain && docker build -t ${CHAIN_IMAGE} .
+	cd ./k8s/apps/chain && docker build -t ${CHAIN_IMAGE} .
 	docker tag ${CHAIN_IMAGE} mathijsvdv/${CHAIN_IMAGE}
 	docker push mathijsvdv/${CHAIN_IMAGE}
+
+deploy:
+	kubectl apply -f ./k8s/envs/$(K8S_ENV)/
+	kubectl apply -f ./k8s/apps/chain/
+
+undeploy:
+	kubectl delete -f ./k8s/apps/chain/
