@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForChainRun,
     CallbackManagerForChainRun,
@@ -11,6 +11,7 @@ from langchain.chat_models.openai import ChatOpenAI
 from langchain.llms.base import LLM
 from langchain.prompts import PromptTemplate
 from langserve import add_routes
+from pydantic import BaseModel
 
 
 def get_llm(llm_name: str) -> LLM:
@@ -93,6 +94,12 @@ class LLMInputChain(Chain):
         return "llm_input_chain"
 
 
+class HealthCheck(BaseModel):
+    """Response model to validate and return when performing a health check."""
+
+    status: str = "OK"
+
+
 app = FastAPI(
     title="LangChain Server",
     version="1.0",
@@ -104,6 +111,18 @@ add_routes(
     LLMInputChain(),
     path="/chain",
 )
+
+
+@app.get(
+    "/health",
+    tags=["healthcheck"],
+    summary="Perform a Health Check",
+    response_description="Return HTTP Status Code 200 (OK)",
+    status_code=status.HTTP_200_OK,
+    response_model=HealthCheck,
+)
+def health():
+    return HealthCheck(status="OK")
 
 
 if __name__ == "__main__":
