@@ -1,4 +1,4 @@
-.PHONY: ankisync init
+.PHONY: ankisync init serve_chain docker_push_chain deploy undeploy health_check eksconfig
 
 CHAIN_API_PORT := 8800
 CHAIN_IMAGE := anki-convo-chain
@@ -6,7 +6,9 @@ WIN_APPDATA := $(shell wslpath "$$(wslvar APPDATA)")
 ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/9999999999
 SITE_PACKAGES_PATH := ./.direnv/anki-convo/lib/python3.9/site-packages
 REQUIREMENTS := yaml openai aiohttp aiosignal async_timeout charset_normalizer frozenlist multidict yarl tqdm dotenv
-K8S_ENV?=dev
+K8S_ENV := dev
+EKS_CLUSTER_NAME := test-eks-cluster
+AWS_REGION := eu-central-1
 
 ankisync:
 	rsync -avz ./src/anki_convo/ ${ANKI_ADDON_PATH}/ --delete \
@@ -44,3 +46,6 @@ undeploy:
 
 health_check:
 	curl -X GET "http://localhost:$(CHAIN_API_PORT)/health"
+
+eksconfig:
+	aws eks update-kubeconfig --name $(EKS_CLUSTER_NAME) --region $(AWS_REGION)
