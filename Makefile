@@ -7,7 +7,7 @@ ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/9999999999
 SITE_PACKAGES_PATH := ./.direnv/anki-convo/lib/python3.9/site-packages
 REQUIREMENTS := yaml openai aiohttp aiosignal async_timeout charset_normalizer frozenlist multidict yarl tqdm dotenv
 K8S_ENV := dev
-EKS_CLUSTER_NAME := test-eks-cluster
+EKS_CLUSTER_NAME := demo
 AWS_REGION := eu-central-1
 
 ankisync:
