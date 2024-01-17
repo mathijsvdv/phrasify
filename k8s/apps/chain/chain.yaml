@@ -1,7 +1,14 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: anki-convo-chain
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: anki-convo-chain-deployment
+  namespace: anki-convo-chain
   labels:
     app: anki-convo-chain
 spec:
@@ -20,6 +27,9 @@ spec:
         ports:
         - containerPort: 8800
         resources:
+          requests:
+            cpu: 500m
+            memory: 500Mi
           limits:
             cpu: 500m
             memory: 500Mi
@@ -29,17 +39,53 @@ spec:
             secretKeyRef:
               name: anki-convo-chain-secret
               key: OPENAI_API_KEY
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #       - matchExpressions:
+      #         - key: ExtraTag
+      #           operator: In
+      #           values:
+      #           - hello-eks-managed-node-group
+      # tolerations:
+      # - key: team
+      #   operator: Equal
+      #   value: dev
+      #   effect: NoSchedule
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: anki-convo-chain-service
+  namespace: anki-convo-chain
 spec:
+  ports:
+  - port: 80
+    targetPort: 8800
+    protocol: TCP
+  type: NodePort
   selector:
     app: anki-convo-chain
-  ports:
-  - protocol: TCP
-    port: 8800
-    targetPort: 8800
-    nodePort: 30800
-  type: LoadBalancer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: anki-convo-chain-ingress
+  namespace: anki-convo-chain
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/tags: Environment=dev,Team=test
+spec:
+  ingressClassName: alb
+  rules:
+    - host: ankiconvo.mvdvlies.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: anki-convo-chain-service
+                port:
+                  number: 80
