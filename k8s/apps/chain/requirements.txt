@@ -1,3 +1,4 @@
+pydantic<2.0
 langchain
 langserve[all]
 openai<1.0

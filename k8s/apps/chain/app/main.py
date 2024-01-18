@@ -11,7 +11,7 @@ from langchain.chat_models.openai import ChatOpenAI
 from langchain.llms.base import LLM
 from langchain.prompts import PromptTemplate
 from langserve import add_routes
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 def get_llm(llm_name: str) -> LLM:
@@ -20,6 +20,16 @@ def get_llm(llm_name: str) -> LLM:
     else:
         msg = f"Invalid LLM name: {llm_name}"
         raise ValueError(msg)
+
+
+class LLMInputChainInput(BaseModel):
+    llm: str
+    prompt: str
+    prompt_inputs: Dict[str, Any] = Field(default_factory=dict)
+
+
+class LLMInputChainOutput(BaseModel):
+    result: str
 
 
 class LLMInputChain(Chain):
@@ -56,9 +66,10 @@ class LLMInputChain(Chain):
         inputs: Dict[str, Any],
         run_manager: Optional[CallbackManagerForChainRun] = None,
     ) -> Dict[str, str]:
-        llm = get_llm(inputs["llm"])
-        prompt = PromptTemplate.from_template(inputs["prompt"])
-        prompt_inputs = inputs["prompt_inputs"]
+        x = LLMInputChainInput(**inputs)
+        llm = get_llm(x.llm)
+        prompt = PromptTemplate.from_template(x.prompt)
+        prompt_inputs = x.prompt_inputs
         chain = LLMChain(llm=llm, prompt=prompt)
         result = chain(prompt_inputs)
 
@@ -75,9 +86,10 @@ class LLMInputChain(Chain):
         inputs: Dict[str, Any],
         run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
     ) -> Dict[str, str]:
-        llm = get_llm(inputs["llm"])
-        prompt = PromptTemplate.from_template(inputs["prompt"])
-        prompt_inputs = inputs["prompt_inputs"]
+        x = LLMInputChainInput(**inputs)
+        llm = get_llm(x.llm)
+        prompt = PromptTemplate.from_template(x.prompt)
+        prompt_inputs = x.prompt_inputs
         chain = LLMChain(llm=llm, prompt=prompt)
         result = await chain.acall(prompt_inputs)
 
@@ -108,7 +120,9 @@ app = FastAPI(
 
 add_routes(
     app,
-    LLMInputChain(),
+    LLMInputChain().with_types(
+        input_type=LLMInputChainInput, output_type=LLMInputChainOutput
+    ),
     path="/chain",
 )
 
