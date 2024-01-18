@@ -1,4 +1,4 @@
-.PHONY: ankisync init serve_chain docker_push_chain deploy undeploy health_check eksconfig
+.PHONY: ankisync init serve_chain docker_push_chain deploy undeploy health_local health_eks eksconfig
 
 CHAIN_API_PORT := 8800
 CHAIN_IMAGE := anki-convo-chain
@@ -44,8 +44,11 @@ deploy:
 undeploy:
 	kubectl delete -f ./k8s/apps/chain/
 
-health_check:
+health_local:
 	curl -X GET "http://localhost:$(CHAIN_API_PORT)/health"
+
+health_eks:
+	curl -X GET "http://ankiconvo.mvdvlies.com:/health"
 
 eksconfig:
 	aws eks update-kubeconfig --name $(EKS_CLUSTER_NAME) --region $(AWS_REGION)
