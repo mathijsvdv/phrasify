@@ -48,7 +48,7 @@ health_local:
 	curl -X GET "http://localhost:$(CHAIN_API_PORT)/health"
 
 health_eks:
-	curl -X GET "http://ankiconvo.mvdvlies.com:/health"
+	curl -X GET "http://ankiconvo.mvdvlies.com/health"
 
 eksconfig:
 	aws eks update-kubeconfig --name $(EKS_CLUSTER_NAME) --region $(AWS_REGION)
