@@ -56,10 +56,9 @@ metadata:
   namespace: anki-convo-chain
 spec:
   ports:
-  - port: 80
-    targetPort: 8800
+  - port: 8800
     protocol: TCP
-  type: NodePort
+  type: ClusterIP
   selector:
     app: anki-convo-chain
 ---
@@ -70,7 +69,7 @@ metadata:
   namespace: anki-convo-chain
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: instance
+    alb.ingress.kubernetes.io/target-type: ip
 
     # Should be parametrized in the future depending on the environment and team
     alb.ingress.kubernetes.io/tags: Environment=dev,Team=test
@@ -87,4 +86,4 @@ spec:
               service:
                 name: anki-convo-chain-service
                 port:
-                  number: 80
+                  number: 8800
