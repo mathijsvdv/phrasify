@@ -70,7 +70,11 @@ metadata:
   namespace: anki-convo-chain
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: instance
+
+    # Should be parametrized in the future depending on the environment and team
     alb.ingress.kubernetes.io/tags: Environment=dev,Team=test
+
 spec:
   ingressClassName: alb
   rules:
