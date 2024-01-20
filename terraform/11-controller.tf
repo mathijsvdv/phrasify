@@ -60,7 +60,7 @@ resource "helm_release" "aws-load-balancer-controller" {
   }
 
   depends_on = [
-    aws_eks_node_group.private-nodes,
+    null_resource.full-eks-cluster,
     aws_iam_role_policy_attachment.aws_load_balancer_controller_attach
   ]
 }

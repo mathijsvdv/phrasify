@@ -39,6 +39,11 @@ resource "kubernetes_service_account" "external_dns" {
       "eks.amazonaws.com/role-arn" = aws_iam_role.external_dns.arn
     }
   }
+
+  depends_on = [
+    null_resource.full-eks-cluster,
+    aws_iam_role_policy_attachment.external_dns_attach
+  ]
 }
 
 resource "kubernetes_cluster_role" "external_dns" {
@@ -64,6 +69,8 @@ resource "kubernetes_cluster_role" "external_dns" {
     resources = ["nodes"]
     verbs = ["list", "watch"]
   }
+
+  depends_on = [null_resource.full-eks-cluster]
 }
 
 resource "kubernetes_cluster_role_binding" "external_dns_viewer" {
@@ -140,4 +147,8 @@ resource "kubernetes_deployment" "external_dns" {
       }
     }
   }
+
+  depends_on = [
+    kubernetes_cluster_role_binding.external_dns_viewer
+  ]
 }

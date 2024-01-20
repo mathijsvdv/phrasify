@@ -53,3 +53,14 @@ resource "aws_route_table_association" "public-eu-central-1c" {
   subnet_id      = aws_subnet.public-eu-central-1c.id
   route_table_id = aws_route_table.public.id
 }
+
+resource "null_resource" "full-route-table" {
+  depends_on = [
+    aws_route_table_association.private-eu-central-1a,
+    aws_route_table_association.private-eu-central-1b,
+    aws_route_table_association.private-eu-central-1c,
+    aws_route_table_association.public-eu-central-1a,
+    aws_route_table_association.public-eu-central-1b,
+    aws_route_table_association.public-eu-central-1c
+  ]
+}
