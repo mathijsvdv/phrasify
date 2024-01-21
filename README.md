@@ -12,6 +12,23 @@ Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into 
 
 ## Installation
 
+## Deployment
+To create the necessary resources on AWS EKS, run the following command:
+```bash
+cd terraform
+terraform init
+terraform apply
+```
+
+Then you need to configure `kubectl` to use the EKS cluster:
+```bash
+make eksconfig
+```
+
+To deploy the API to EKS, run the following command:
+```bash
+make deploy K8S_ENV=dev-eks
+```
 
 ## License
 `anki-convo` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
