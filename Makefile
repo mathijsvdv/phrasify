@@ -36,6 +36,7 @@ docker_push_chain:
 	docker push mathijsvdv/${CHAIN_IMAGE}
 
 deploy:
+	kubectl apply -f ./k8s/namespaces.yaml
 	kubectl apply -f ./k8s/envs/$(K8S_ENV)/
 	kubectl apply -f ./k8s/apps/chain/
 
