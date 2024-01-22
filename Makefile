@@ -44,5 +44,5 @@ deploy:
 undeploy:
 	kubectl delete -f ./k8s/apps/chain/
 
-health_check:
+health_local:
 	curl -X GET "http://localhost:$(CHAIN_API_PORT)/health"
