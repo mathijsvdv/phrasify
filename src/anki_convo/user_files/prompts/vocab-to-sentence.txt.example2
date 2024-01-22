@@ -6,10 +6,13 @@ Regarding the formulation of the card content, you stick to two principles:
 
 You are going to use your skills to generate Anki cards that help memorize vocabulary in a foreign language by generating sentences from the vocabulary words and phrases I provide.
 
-I know the following language: {source_language} and I want to learn the following language: {target_language}.
+I know the following language: English and I want to learn the following language: Ukrainian.
 
-Please generate {n_cards} card(s) from the following input card in JSON format containing just a vocabulary word or phrase.
-{card_json}
+Please generate 10 card(s) from the following input card in JSON format containing just a vocabulary word or phrase.
+{
+    "front": "friend",
+    "back": ""
+}
 
-For each card, I want you to replace the `{source_field_name}` field with the {source_language} sentence and the `{target_field_name}` field with the {target_language} sentence.
+For each card, I want you to replace the `front` field with the English sentence and the `back` field with the Ukrainian sentence.
 You should not give any response other than the JSON (list of cards). Not a single character of text aside from JSON.

@@ -26,13 +26,8 @@ def _is_non_empty_string(s: str) -> bool:
 
 @dataclass
 class TextCard:
-    front: str
-    back: str
-
-    def __post_init__(self):
-        if not (_is_non_empty_string(self.front) and _is_non_empty_string(self.back)):
-            msg = f"Front and back must be non-empty strings: {self}"
-            raise ValueError(msg)
+    front: str = ""
+    back: str = ""
 
     @classmethod
     def from_dict(cls, d: dict) -> "TextCard":
@@ -40,3 +35,6 @@ class TextCard:
 
     def to_dict(self) -> dict:
         return {"front": self.front, "back": self.back}
+
+    def __hash__(self):
+        return hash(self.front) ^ hash(self.back)

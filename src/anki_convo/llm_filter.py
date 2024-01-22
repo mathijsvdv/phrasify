@@ -5,11 +5,12 @@ from typing import Optional
 from anki import hooks
 from anki.template import TemplateRenderContext
 
-from .card import CardSide
+from .card import CardSide, TextCard
 from .card_generator import (
     CardGenerator,
     CardGeneratorConfig,
     CardGeneratorFactory,
+    LanguagePromptInputConfig,
     cached2_card_generator_factory,
     create_card_generator,
 )
@@ -49,8 +50,10 @@ class LLMFilter:
                 f"(f{self.card_side.value} side)>"
             )
 
+        input_card = TextCard(**{field_name.lower(): field_text})
+
         try:
-            cards = self.card_generator(field_text=field_text)
+            cards = self.card_generator(input_card)
         except CardGenerationError as e:
             # Error generating card, return the field text unchanged
             logger.error(
@@ -66,7 +69,7 @@ class LLMFilter:
             # No cards generated, return the field text unchanged
             return field_text
 
-        card = next(iter(self.card_generator(field_text=field_text)))
+        card = next(iter(self.card_generator(input_card)))
         return getattr(card, self.card_side.value)
 
 
@@ -105,8 +108,12 @@ def parse_llm_filter_name(filter_name: str) -> LLMFilterConfig:
         raise ValueError(msg)
 
     card_generator_config = CardGeneratorConfig(
-        prompt_name=prompt_name, lang_front=lang_front, lang_back=lang_back
+        prompt_name=prompt_name,
+        prompt_inputs=LanguagePromptInputConfig(
+            source_language=lang_front, target_language=lang_back
+        ),
     )
+
     llm_filter_config = LLMFilterConfig(
         card_generator=card_generator_config, card_side=card_side
     )
