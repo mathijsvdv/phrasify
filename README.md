@@ -13,7 +13,7 @@ Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into 
 ## Installation
 
 ## Deployment
-To create the necessary resources on AWS EKS, run the following command:
+To create the necessary resources on AWS, including a VPC and an EKS cluster, run the following command:
 ```bash
 cd terraform
 terraform init
@@ -29,6 +29,17 @@ To deploy the API to EKS, run the following command:
 ```bash
 make deploy K8S_ENV=dev-eks
 ```
+
+### Structure of the EKS cluster
+The EKS cluster is deployed in a VPC with 3 public and 3 private subnets. The public
+subnets are used for the EKS control plane and the private subnets are used for the worker nodes.
+The worker nodes are deployed in an autoscaling group with a minimum of 0 and a maximum of 5 nodes.
+
+The EKS cluster is deployed with the following add-ons:
+- [AWS Load Balancer Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.2/)
+- [External DNS](https://github.com/kubernetes-sigs/external-dns)
+
+Upon deletion of the EKS cluster, all resources created by the add-ons are automatically deleted.
 
 ## License
 `anki-convo` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
