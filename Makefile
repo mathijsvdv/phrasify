@@ -35,6 +35,7 @@ docker_push_chain:
 	docker tag ${CHAIN_IMAGE} mathijsvdv/${CHAIN_IMAGE}
 	docker push mathijsvdv/${CHAIN_IMAGE}
 
+# When deploying to `minikube` be sure to run `minikube tunnel` in a separate terminal first
 deploy:
 	kubectl apply -f ./k8s/namespaces.yaml
 	kubectl apply -f ./k8s/envs/$(K8S_ENV)/
