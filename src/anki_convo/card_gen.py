@@ -54,8 +54,8 @@ class CardGeneratorConfig:
 
 
 @dataclass
-class LLMLanguageCardGenerator(CardGenerator):
-    """Can be called to generate language cards from an input card inserted into a
+class LLMTranslationCardGenerator(CardGenerator):
+    """Can be called to generate translation cards from an input card inserted into a
     prompt."""
 
     chain: LLMChain
@@ -72,7 +72,7 @@ class LLMLanguageCardGenerator(CardGenerator):
         }
 
     def __call__(self, card: TranslationCard) -> List[TranslationCard]:
-        """Generate multiple language cards from an input card inserted into a
+        """Generate multiple translation cards from an input card inserted into a
         prompt."""
         logger.debug(
             f"{self.__class__.__name__} generating {self.n_cards} cards "
@@ -102,7 +102,7 @@ def create_card_generator(config: CardGeneratorConfig):
     llm = get_llm(config.llm)
     prompt = get_prompt(config.prompt_name)
     chain = LLMChain(llm=llm, prompt=prompt)
-    card_generator = LLMLanguageCardGenerator(
+    card_generator = LLMTranslationCardGenerator(
         chain=chain,
         n_cards=config.n_cards,
         source_language=config.source_language,
