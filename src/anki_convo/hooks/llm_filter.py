@@ -5,8 +5,8 @@ from typing import Optional
 from anki import hooks
 from anki.template import TemplateRenderContext
 
-from .card import CardSide, TextCard
-from .card_generator import (
+from ..card import CardSide, TextCard
+from ..card_generator import (
     CardGenerator,
     CardGeneratorConfig,
     CardGeneratorFactory,
@@ -14,13 +14,9 @@ from .card_generator import (
     cached2_card_generator_factory,
     create_card_generator,
 )
-from .error import CardGenerationError
-from .factory import get_card_side
-from .logging import get_logger
-
-# Possible hooks and filters to use
-# from anki.hooks import card_did_render, field_filter
-
+from ..error import CardGenerationError
+from ..factory import get_card_side
+from ..logging import get_logger
 
 logger = get_logger(__name__)
 

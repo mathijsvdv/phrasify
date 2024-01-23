@@ -3,7 +3,7 @@ import pytest
 from anki_convo.card import TextCard
 from anki_convo.chains.llm import LLMChain
 from anki_convo.factory import get_card_side, get_prompt
-from anki_convo.llm_filter import (
+from anki_convo.hooks.llm_filter import (
     CardGenerator,
     CardGeneratorConfig,
     ChainCardGenerator,
