@@ -113,8 +113,8 @@ def create_llm_filter(
 
 
 def parse_llm_filter_name(filter_name: str) -> LLMFilterConfig:
-    # TODO Make lang_front and lang_back optional by considering the config and possibly
-    #  the name of the deck that we're in.
+    # TODO Make source_lang and target_lang optional by considering the config and
+    # possibly the name of the deck that we're in.
 
     pattern = (
         r"llm (?P<prompt_name>[a-zA-Z0-9_-]+) "
