@@ -6,7 +6,7 @@ from anki import hooks
 from anki.template import TemplateRenderContext
 
 from ..card import CardSide, TextCard
-from ..card_generator import (
+from ..card_gen import (
     CardGenerator,
     CardGeneratorConfig,
     CardGeneratorFactory,
