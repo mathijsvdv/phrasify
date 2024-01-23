@@ -6,14 +6,13 @@ These functions are used to parse user input.
 from functools import lru_cache
 from typing import Optional
 
-from .card import CardSide
 from .chains.llm_input import LLMInputChain
 from .chains.remote import RemoteChain
 from .config import config
 from .constants import PROMPT_DIR
 from .llms.openai import OpenAI
 
-__all__ = ["get_llm", "get_prompt", "get_card_side", "get_chain"]
+__all__ = ["get_llm", "get_prompt", "get_chain"]
 
 
 def get_llm_name(llm_name: Optional[str] = None):
@@ -52,8 +51,3 @@ def get_prompt(prompt_name: str):
     with open(prompt_path) as f:
         prompt = f.read()
     return prompt
-
-
-def get_card_side(side: str):
-    """Get the CardSide from a string identifier."""
-    return CardSide.from_str(side)
