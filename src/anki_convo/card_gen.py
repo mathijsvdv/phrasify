@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass
 from functools import lru_cache
 from typing import Any, Callable, Dict, List
 
-from .card import TextCard
+from .card import TranslationCard
 from .chains.base import Chain
 from .error import CardGenerationError, ChainError
 from .factory import get_chain, get_llm_name, get_prompt
@@ -12,11 +12,11 @@ from .logging import get_logger
 logger = get_logger(__name__)
 
 
-CardGenerator = Callable[[TextCard], List[TextCard]]
+CardGenerator = Callable[[TranslationCard], List[TranslationCard]]
 
 
-def parse_text_card_response(response: Dict[str, str]) -> List[TextCard]:
-    """Parse the response from an LLM into a list of TextCard objects"""
+def parse_text_card_response(response: Dict[str, str]) -> List[TranslationCard]:
+    """Parse the response from an LLM into a list of TranslationCard objects"""
     # TODO If using CSV, need to be robust to:
     #   - Multiple sentences
     #   - Commas in the sentences
@@ -34,14 +34,9 @@ def parse_text_card_response(response: Dict[str, str]) -> List[TextCard]:
     response = response["result"]["text"]
     card_dicts = json.loads(response)
 
-    return [
-        TextCard(front=card_dict["front"], back=card_dict["back"])
-        for card_dict in card_dicts
-    ]
+    return [TranslationCard(**card_dict) for card_dict in card_dicts]
 
 
-DEFAULT_SOURCE_FIELD_NAME = "front"
-DEFAULT_TARGET_FIELD_NAME = "back"
 DEFAULT_SOURCE_LANGUAGE = "English"
 DEFAULT_TARGET_LANGUAGE = "Ukrainian"
 
@@ -50,8 +45,6 @@ DEFAULT_TARGET_LANGUAGE = "Ukrainian"
 class LanguagePromptInputConfig:
     """Configuration for the CardGenerator."""
 
-    source_field_name: str = DEFAULT_SOURCE_FIELD_NAME
-    target_field_name: str = DEFAULT_TARGET_FIELD_NAME
     source_language: str = DEFAULT_SOURCE_LANGUAGE
     target_language: str = DEFAULT_TARGET_LANGUAGE
 
@@ -77,14 +70,14 @@ class ChainCardGenerator(CardGenerator):
     def n_cards(self) -> int:
         return self.prompt_inputs.get("n_cards", 1)
 
-    def _get_chain_inputs(self, card_json: str) -> Dict[str, Any]:
+    def _get_chain_inputs(self, card_json: Dict[str, str]) -> Dict[str, Any]:
         return {
             "llm": self.llm,  # TODO Should this be a string or an LLM object?
             "prompt": self.prompt,
             "prompt_inputs": dict(**self.prompt_inputs, card_json=card_json),
         }
 
-    def __call__(self, card: TextCard) -> List[TextCard]:
+    def __call__(self, card: TranslationCard) -> List[TranslationCard]:
         """Generate multiple language cards from an input card inserted into a
         prompt."""
         logger.debug(
@@ -97,7 +90,7 @@ class ChainCardGenerator(CardGenerator):
         if self.n_cards == 0:
             return []
 
-        chain_inputs = self._get_chain_inputs(card_json=json.dumps(card.to_dict()))
+        chain_inputs = self._get_chain_inputs(card_json=card.to_json())
         try:
             response = self.chain(chain_inputs)
         except ChainError as e:
