@@ -1,12 +1,12 @@
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Any, Callable, Dict, List
+from typing import Callable, Dict, List
 
 from .card import TranslationCard
-from .chains.base import Chain
+from .chains.llm import LLMChain, LLMChainInput
 from .error import CardGenerationError, ChainError
-from .factory import get_chain, get_llm_name, get_prompt
+from .factory import get_llm, get_llm_name, get_prompt
 from .logging import get_logger
 
 logger = get_logger(__name__)
@@ -31,22 +31,15 @@ def parse_text_card_response(response: Dict[str, str]) -> List[TranslationCard]:
     # But the response may be longer and require more tokens (more expensive).
     # TODO In any case, probably want to parse the response into a list of
     # dictionaries first, then convert each to cards.
-    response = response["result"]["text"]
+    response = response["text"]
     card_dicts = json.loads(response)
 
     return [TranslationCard(**card_dict) for card_dict in card_dicts]
 
 
+DEFAULT_N_CARDS = 1
 DEFAULT_SOURCE_LANGUAGE = "English"
 DEFAULT_TARGET_LANGUAGE = "Ukrainian"
-
-
-@dataclass(frozen=True)
-class LanguagePromptInputConfig:
-    """Configuration for the CardGenerator."""
-
-    source_language: str = DEFAULT_SOURCE_LANGUAGE
-    target_language: str = DEFAULT_TARGET_LANGUAGE
 
 
 @dataclass(frozen=True)
@@ -54,27 +47,28 @@ class CardGeneratorConfig:
     """Configuration for the CardGenerator."""
 
     prompt_name: str
-    prompt_inputs: LanguagePromptInputConfig
+    llm: str = field(default_factory=get_llm_name)
+    n_cards: int = DEFAULT_N_CARDS
+    source_language: str = DEFAULT_SOURCE_LANGUAGE
+    target_language: str = DEFAULT_TARGET_LANGUAGE
 
 
 @dataclass
-class ChainCardGenerator(CardGenerator):
-    """Can be called to generate language cards from an LLMInputChain."""
+class LLMLanguageCardGenerator(CardGenerator):
+    """Can be called to generate language cards from an input card inserted into a
+    prompt."""
 
-    chain: Chain[Dict[str, Any], str]
-    llm: str
-    prompt: str
-    prompt_inputs: Dict[str, Any]
+    chain: LLMChain
+    n_cards: int
+    source_language: str
+    target_language: str
 
-    @property
-    def n_cards(self) -> int:
-        return self.prompt_inputs.get("n_cards", 1)
-
-    def _get_chain_inputs(self, card_json: Dict[str, str]) -> Dict[str, Any]:
+    def _get_chain_inputs(self, card: TranslationCard) -> LLMChainInput:
         return {
-            "llm": self.llm,  # TODO Should this be a string or an LLM object?
-            "prompt": self.prompt,
-            "prompt_inputs": dict(**self.prompt_inputs, card_json=card_json),
+            "n_cards": self.n_cards,
+            "source_language": self.source_language,
+            "target_language": self.target_language,
+            "card_json": card.to_json(),
         }
 
     def __call__(self, card: TranslationCard) -> List[TranslationCard]:
@@ -82,38 +76,39 @@ class ChainCardGenerator(CardGenerator):
         prompt."""
         logger.debug(
             f"{self.__class__.__name__} generating {self.n_cards} cards "
-            f"from card {card!r},"
-            f"using chain {self.chain} with llm {self.llm!r}. "
-            f"Here is the prompt template:\n'''{self.prompt}'''\n"
-            f"Prompt inputs are {self.prompt_inputs}"
+            f"from card {card!r}, using chain {self.chain}"
         )
         if self.n_cards == 0:
             return []
 
-        chain_inputs = self._get_chain_inputs(card_json=card.to_json())
+        chain_inputs = self._get_chain_inputs(card)
         try:
             response = self.chain(chain_inputs)
         except ChainError as e:
             msg = f"Error generating card using chain inputs: {chain_inputs}"
             raise CardGenerationError(msg) from e
 
-        cards = parse_text_card_response(response)
+        try:
+            cards = parse_text_card_response(response)
+        except json.JSONDecodeError as e:
+            msg = f"Error parsing response from chain: {response}"
+            raise CardGenerationError(msg) from e
 
         return cards
 
 
 def create_card_generator(config: CardGeneratorConfig):
     """Create a CardGenerator from the config."""
-    llm_name = get_llm_name()
+    llm = get_llm(config.llm)
     prompt = get_prompt(config.prompt_name)
-    chain = get_chain()
-
-    prompt_inputs = {"n_cards": 1}
-    prompt_inputs.update(asdict(config.prompt_inputs))
-
-    card_generator = ChainCardGenerator(
-        chain=chain, llm=llm_name, prompt=prompt, prompt_inputs=prompt_inputs
+    chain = LLMChain(llm=llm, prompt=prompt)
+    card_generator = LLMLanguageCardGenerator(
+        chain=chain,
+        n_cards=config.n_cards,
+        source_language=config.source_language,
+        target_language=config.target_language,
     )
+
     return lru_cache(maxsize=None)(card_generator)
 
 
