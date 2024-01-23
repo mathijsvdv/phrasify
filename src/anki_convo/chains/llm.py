@@ -29,5 +29,5 @@ class LLMChain(Chain[LLMChainInput, LLMChainOutput]):
         except LLMError as e:
             self._raise(e)
 
-        output = dict(**x, **{self.output_key: text})
+        output = dict(inputs=x, **{self.output_key: text})
         return output

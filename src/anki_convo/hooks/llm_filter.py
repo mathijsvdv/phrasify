@@ -10,7 +10,6 @@ from ..card_gen import (
     CardGenerator,
     CardGeneratorConfig,
     CardGeneratorFactory,
-    LanguagePromptInputConfig,
     cached2_card_generator_factory,
     create_card_generator,
 )
@@ -114,8 +113,8 @@ def create_llm_filter(
 
 
 def parse_llm_filter_name(filter_name: str) -> LLMFilterConfig:
-    # TODO Make lang_front and lang_back optional by considering the config and possibly
-    #  the name of the deck that we're in.
+    # TODO Make source_lang and target_lang optional by considering the config and
+    # possibly the name of the deck that we're in.
 
     pattern = (
         r"llm (?P<prompt_name>[a-zA-Z0-9_-]+) "
@@ -138,9 +137,8 @@ def parse_llm_filter_name(filter_name: str) -> LLMFilterConfig:
 
     card_generator_config = CardGeneratorConfig(
         prompt_name=prompt_name,
-        prompt_inputs=LanguagePromptInputConfig(
-            source_language=source_language, target_language=target_language
-        ),
+        source_language=source_language,
+        target_language=target_language,
     )
     language_field_names = LanguageFieldNames(
         source=source_field_name, target=target_field_name
