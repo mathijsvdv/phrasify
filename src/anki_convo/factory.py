@@ -6,13 +6,11 @@ These functions are used to parse user input.
 from functools import lru_cache
 from typing import Optional
 
-from .chains.llm_input import LLMInputChain
-from .chains.remote import RemoteChain
 from .config import config
 from .constants import PROMPT_DIR
 from .llms.openai import OpenAI
 
-__all__ = ["get_llm", "get_prompt", "get_chain"]
+__all__ = ["get_llm", "get_prompt"]
 
 
 def get_llm_name(llm_name: Optional[str] = None):
@@ -32,16 +30,6 @@ def get_llm(llm_name: Optional[str] = None):
     else:
         msg = f"Invalid LLM name: {llm_name}"
         raise ValueError(msg)
-
-
-def get_chain(chain_api_url: Optional[str] = None):
-    if chain_api_url is None:
-        chain_api_url = config["chainApiUrl"]
-
-    if chain_api_url is None:
-        return LLMInputChain()
-
-    return RemoteChain(api_url=chain_api_url)
 
 
 @lru_cache(maxsize=None)
