@@ -27,6 +27,9 @@ init:
 	hatch run python -m ipykernel install --user --name anki-convo --display-name "Python (anki-convo)"
 	hatch run python -m nbstripout --install --attributes .gitattributes
 
+serve:
+	uvicorn src.anki_convo_api.main:app --port $(CHAIN_API_PORT) --reload
+
 serve_chain:
 	cd ./k8s/apps/chain &&	uvicorn app.main:app --port $(CHAIN_API_PORT) --reload
 
