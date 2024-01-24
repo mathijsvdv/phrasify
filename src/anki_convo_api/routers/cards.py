@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from fastapi_versionizer import api_version
 from pydantic import BaseModel, Field
 
 from anki_convo.card import TranslationCard as TranslationCardDataclass
@@ -47,6 +48,7 @@ class CardGenerationRequest(BaseModel):
     card: TranslationCard = Field(default_factory=TranslationCard)
 
 
+@api_version(1)
 @router.post("/", summary="Generate Anki cards from a prompt and input card.")
 def generate_cards(request: CardGenerationRequest) -> list[TranslationCard]:
     generator = create_card_generator(request.card_generator)

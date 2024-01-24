@@ -1,20 +1,36 @@
 from fastapi import FastAPI, status
+from fastapi.responses import RedirectResponse
+from fastapi_versionizer import Versionizer
 from pydantic import BaseModel
 
-from .routers.v1 import router as v1_router
-
-
-class HealthCheck(BaseModel):
-    """Response model to validate and return when performing a health check."""
-
-    status: str = "OK"
-
+from .routers.cards import router as cards_router
 
 app = FastAPI(
     title="Card Generator API",
     version="1.0",
     description="API for generating Anki cards from a prompt and input card.",
 )
+
+app.include_router(cards_router, prefix="/cards", tags=["Cards"])
+
+
+versions = Versionizer(
+    app=app,
+    prefix_format="/v{major}",
+    semantic_version_format="{major}",
+    latest_prefix="/latest",
+).versionize()
+
+
+@app.get("/", include_in_schema=False)
+async def docs_redirect():
+    return RedirectResponse(url="/docs")
+
+
+class HealthCheck(BaseModel):
+    """Response model to validate and return when performing a health check."""
+
+    status: str = "OK"
 
 
 @app.get(
@@ -27,9 +43,6 @@ app = FastAPI(
 )
 def get_health():
     return HealthCheck(status="OK")
-
-
-app.include_router(v1_router, prefix="/v1", tags=["v1"])
 
 
 if __name__ == "__main__":
