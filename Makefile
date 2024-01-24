@@ -1,7 +1,7 @@
-.PHONY: ankisync init
+.PHONY: ankisync init serve docker_push deploy undeploy health_local
 
 CHAIN_API_PORT := 8800
-CHAIN_IMAGE := anki-convo-chain
+IMAGE := anki-convo
 WIN_APPDATA := $(shell wslpath "$$(wslvar APPDATA)")
 ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/9999999999
 SITE_PACKAGES_PATH := ./.direnv/anki-convo/lib/python3.9/site-packages
@@ -30,22 +30,22 @@ init:
 serve:
 	uvicorn src.anki_convo_api.main:app --port $(CHAIN_API_PORT) --reload
 
-serve_chain:
-	cd ./k8s/apps/chain &&	uvicorn app.main:app --port $(CHAIN_API_PORT) --reload
+docker_run:
+	docker build -t mathijsvdv/${IMAGE} .
+	docker run --name anki-convo -p 8800:8800  mathijsvdv/${IMAGE}
 
-docker_push_chain:
-	cd ./k8s/apps/chain && docker build -t ${CHAIN_IMAGE} .
-	docker tag ${CHAIN_IMAGE} mathijsvdv/${CHAIN_IMAGE}
-	docker push mathijsvdv/${CHAIN_IMAGE}
+docker_push:
+	docker build -t mathijsvdv/${IMAGE} .
+	docker push mathijsvdv/${IMAGE}
 
 # When deploying to `minikube` be sure to run `minikube tunnel` in a separate terminal first
 deploy:
 	kubectl apply -f ./k8s/namespaces.yaml
 	kubectl apply -f ./k8s/envs/$(K8S_ENV)/
-	kubectl apply -f ./k8s/apps/chain/
+	kubectl apply -f ./k8s/apps/anki-convo.yaml
 
 undeploy:
-	kubectl delete -f ./k8s/apps/chain/
+	kubectl delete -f ./k8s/apps/anki-convo.yaml
 
 health_local:
 	curl -X GET "http://localhost:$(CHAIN_API_PORT)/health"
