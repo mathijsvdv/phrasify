@@ -32,9 +32,18 @@ def get_llm(llm_name: Optional[str] = None):
         raise ValueError(msg)
 
 
+def get_prompt_name(prompt_name: Optional[str] = None):
+    """Get the prompt name. If none is given, use the default from the config."""
+    if prompt_name is None:
+        prompt_name = config["promptName"]
+
+    return prompt_name
+
+
 @lru_cache(maxsize=None)
-def get_prompt(prompt_name: str):
+def get_prompt(prompt_name: Optional[str] = None):
     """Get the prompt text for the given prompt name."""
+    prompt_name = get_prompt_name(prompt_name)
     prompt_path = PROMPT_DIR / f"{prompt_name}.txt"
     with open(prompt_path) as f:
         prompt = f.read()

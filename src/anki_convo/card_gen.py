@@ -5,8 +5,9 @@ from typing import Callable, Dict, List
 
 from .card import TranslationCard
 from .chains.llm import LLMChain, LLMChainInput
+from .constants import DEFAULT_N_CARDS, DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE
 from .error import CardGenerationError, ChainError
-from .factory import get_llm, get_llm_name, get_prompt
+from .factory import get_llm, get_llm_name, get_prompt, get_prompt_name
 from .logging import get_logger
 
 logger = get_logger(__name__)
@@ -37,17 +38,12 @@ def parse_text_card_response(response: Dict[str, str]) -> List[TranslationCard]:
     return [TranslationCard(**card_dict) for card_dict in card_dicts]
 
 
-DEFAULT_N_CARDS = 1
-DEFAULT_SOURCE_LANGUAGE = "English"
-DEFAULT_TARGET_LANGUAGE = "Ukrainian"
-
-
 @dataclass(frozen=True)
 class CardGeneratorConfig:
     """Configuration for the CardGenerator."""
 
-    prompt_name: str
     llm: str = field(default_factory=get_llm_name)
+    prompt_name: str = field(default_factory=get_prompt_name)
     n_cards: int = DEFAULT_N_CARDS
     source_language: str = DEFAULT_SOURCE_LANGUAGE
     target_language: str = DEFAULT_TARGET_LANGUAGE
