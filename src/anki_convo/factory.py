@@ -48,3 +48,28 @@ def get_prompt(prompt_name: Optional[str] = None):
     with open(prompt_path) as f:
         prompt = f.read()
     return prompt
+
+
+def get_api_location(api_location: Optional[str] = None):
+    """Get the API location. If none is given, use the default from the config."""
+    if api_location is None:
+        api_location = config.get("apiLocation", None)
+
+    return api_location
+
+
+def get_api_url(api_location: Optional[str] = None):
+    """Get the Cards API URL for the given API location."""
+    api_location = get_api_location(api_location)
+
+    if api_location is None:
+        return None
+
+    if api_location == "local":
+        return "http://localhost:8800/v1/cards"
+
+    if api_location == "remote":
+        return "https://anki-convo.mvdvlies.com/api/v1/cards"
+
+    message = f"Invalid API location: {api_location!r}"
+    raise ValueError(message)
