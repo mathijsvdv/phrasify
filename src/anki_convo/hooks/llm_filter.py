@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import re
 from dataclasses import dataclass
-from typing import Mapping, Optional
+from typing import TYPE_CHECKING, Mapping
 
-from anki import hooks
-from anki.template import TemplateRenderContext
+if TYPE_CHECKING:
+    from anki.template import TemplateRenderContext
 
 from ..card import TranslationCard
 from ..card_gen import (
@@ -100,7 +102,7 @@ class LLMFilter:
 
 def create_llm_filter(
     config: LLMFilterConfig,
-    card_generator_factory: Optional[CardGeneratorFactory] = None,
+    card_generator_factory: CardGeneratorFactory | None = None,
 ):
     """Create an LLMFilter from the config."""
     if card_generator_factory is None:
@@ -206,5 +208,7 @@ def invalid_name(filter_name: str) -> str:
 
 
 def init_llm_filter():
+    from anki import hooks
+
     # register our function to be called when the hook fires
     hooks.field_filter.append(llm_filter)
