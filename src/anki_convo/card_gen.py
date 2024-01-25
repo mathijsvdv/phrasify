@@ -52,7 +52,7 @@ class CardGeneratorConfig:
 
 
 @dataclass
-class LLMTranslationCardGenerator(CardGenerator):
+class LLMTranslationCardGenerator:
     """Can be called to generate translation cards from an input card inserted into a
     prompt."""
 
@@ -109,7 +109,7 @@ class LLMTranslationCardGenerator(CardGenerator):
 
 
 @dataclass
-class RemoteCardGenerator(CardGenerator):
+class RemoteCardGenerator:
     """Can be called to generate translation cards from an input card by sending a
     request to a remote server."""
 
