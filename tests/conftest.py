@@ -65,6 +65,8 @@ llm_card_generation_expectations_params = {
     ids=llm_card_generation_expectations_params.keys(),
 )
 def llm_card_generation_expectation(request):
+    """Fixture containing the response from the LLM (input for
+    LLMTranslationCardGenerator) and the expected cards."""
     response, expected_cards = request.param
     return LLMCardGenerationExpectation(
         response=response, expected_cards=expected_cards
@@ -73,15 +75,19 @@ def llm_card_generation_expectation(request):
 
 @pytest.fixture()
 def llm_response(llm_card_generation_expectation: LLMCardGenerationExpectation):
+    """Fixture containing the response from the LLM (input for
+    TranslationCardGenerator)."""
     return llm_card_generation_expectation.response
 
 
 @pytest.fixture()
 def llm_expected_cards(llm_card_generation_expectation: LLMCardGenerationExpectation):
+    """Fixture containing the expected cards (output for TranslationCardGenerator)."""
     return llm_card_generation_expectation.expected_cards
 
 
 # TODO: Add a test for the case where the chain raises an error
+# TODO: Add a test for the case where the chain returns an invalid response
 @pytest.fixture()
 def llm_translation_card_generator():
     chain = Always("")  # We will mock the chain's response in the tests
