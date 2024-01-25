@@ -49,7 +49,11 @@ test = "pytest {args:tests}"
 test-cov = "coverage run -m pytest {args:tests}"
 cov-report = [
   "- coverage combine",
-  "coverage report",
+  "coverage report -m",
+]
+cov-html = [
+  "- coverage combine",
+  "coverage html",
 ]
 cov = [
   "test-cov",
@@ -156,6 +160,7 @@ branch = true
 parallel = true
 omit = [
   "src/anki_convo/__about__.py",
+  "tests/mocks.py",
 ]
 
 [tool.coverage.paths]
