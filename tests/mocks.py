@@ -1,4 +1,8 @@
+from typing import Callable, TypeVar
+
 from anki_convo.card import TranslationCard
+
+T_co = TypeVar("T_co", covariant=True)
 
 
 class CountingCardGenerator:
@@ -23,3 +27,13 @@ class CountingCardGenerator:
             )
             for i in range(self.n_cards)
         ]
+
+
+class Always(Callable[..., T_co]):
+    """Callable that always returns the same value."""
+
+    def __init__(self, value: T_co):
+        self.value = value
+
+    def __call__(self, *args, **kwargs) -> T_co:  # noqa: ARG002
+        return self.value

@@ -1,10 +1,11 @@
+from dataclasses import dataclass
+from typing import List
+
 import pytest
 
 from anki_convo.card import TranslationCard
 from anki_convo.card_gen import LLMTranslationCardGenerator
-from anki_convo.chains.llm import LLMChain
-from anki_convo.factory import get_prompt
-from anki_convo.llms.openai import OpenAI
+from tests.mocks import Always
 
 
 @pytest.fixture(params=[0, 1, 3, 5])
@@ -12,16 +13,86 @@ def n_cards(request):
     return request.param
 
 
-# TODO: Add a test for the case where the chain raises an error
-@pytest.fixture()
-def llm_translation_card_generator(n_cards):
-    chain = LLMChain(
-        llm=OpenAI(model="gpt-3.5-turbo"), prompt=get_prompt("vocab-to-sentence")
+@dataclass
+class LLMCardGenerationExpectation:
+    """Expected result of calling a card generator, given the response from the LLM."""
+
+    response: str
+    expected_cards: List[TranslationCard]
+
+
+llm_card_generation_expectations_params = {
+    "empty": ("[]", []),
+    "one_card": (
+        '[{"source": "Hello, how are you?", "target": "Привіт, як справи?"}]',
+        [TranslationCard(source="Hello, how are you?", target="Привіт, як справи?")],
+    ),
+    "two_cards": (
+        (
+            '[{"source": "Hello, how are you?", "target": "Привіт, як справи?"}, '
+            '{"source": "Good morning, have a nice day!",'
+            ' "target": "Доброго ранку, маєте чудовий день!"}]'
+        ),
+        [
+            TranslationCard(source="Hello, how are you?", target="Привіт, як справи?"),
+            TranslationCard(
+                source="Good morning, have a nice day!",
+                target="Доброго ранку, маєте чудовий день!",
+            ),
+        ],
+    ),
+    "empty_weird": ("[         ]", []),
+    "two_cards_weird": (
+        (
+            '[          {  \n"source": "Hello, how are you?"  ,'
+            '\n\n"target":   "Привіт, як справи?"},   '
+            '\n\n\t{"source":    "Good morning, have a nice day!",'
+            '\n"target": "Доброго ранку, маєте чудовий день!"}\n\n\n]'
+        ),
+        [
+            TranslationCard(source="Hello, how are you?", target="Привіт, як справи?"),
+            TranslationCard(
+                source="Good morning, have a nice day!",
+                target="Доброго ранку, маєте чудовий день!",
+            ),
+        ],
+    ),
+}
+
+
+@pytest.fixture(
+    params=llm_card_generation_expectations_params.values(),
+    ids=llm_card_generation_expectations_params.keys(),
+)
+def llm_card_generation_expectation(request):
+    response, expected_cards = request.param
+    return LLMCardGenerationExpectation(
+        response=response, expected_cards=expected_cards
     )
 
+
+@pytest.fixture()
+def llm_response(llm_card_generation_expectation: LLMCardGenerationExpectation):
+    return llm_card_generation_expectation.response
+
+
+@pytest.fixture()
+def llm_expected_cards(llm_card_generation_expectation: LLMCardGenerationExpectation):
+    return llm_card_generation_expectation.expected_cards
+
+
+# TODO: Add a test for the case where the chain raises an error
+@pytest.fixture()
+def llm_translation_card_generator():
+    chain = Always("")  # We will mock the chain's response in the tests
     generator = LLMTranslationCardGenerator(
         chain=chain,
-        n_cards=n_cards,
+        # n_cards, source_language and target_language are not used in the tests:
+        # ultimately the chain decides how many cards to generate,
+        # and with which languages.
+        # We are testing the card generator's ability to adapt to the chain's
+        # response, not the chain's ability to generate cards.
+        n_cards=1,
         source_language="English",
         target_language="Ukrainian",
     )
