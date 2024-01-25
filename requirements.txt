@@ -5,5 +5,6 @@ langserve[all]
 openai
 python-dotenv
 fastapi
+fastapi-versionizer
 uvicorn
-yaml
+pyaml

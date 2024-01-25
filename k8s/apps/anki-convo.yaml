@@ -2,23 +2,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: anki-convo-chain-deployment
-  namespace: anki-convo-chain
+  name: anki-convo-deployment
+  namespace: anki-convo
   labels:
-    app: anki-convo-chain
+    app: anki-convo
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: anki-convo-chain
+      app: anki-convo
   template:
     metadata:
       labels:
-        app: anki-convo-chain
+        app: anki-convo
     spec:
       containers:
-      - name: anki-convo-chain
-        image: mathijsvdv/anki-convo-chain
+      - name: anki-convo
+        image: mathijsvdv/anki-convo
         ports:
         - containerPort: 8800
         resources:
@@ -32,17 +32,17 @@ spec:
         - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
-              name: anki-convo-chain-secret
+              name: anki-convo-secret
               key: OPENAI_API_KEY
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: anki-convo-chain-service
-  namespace: anki-convo-chain
+  name: anki-convo-service
+  namespace: anki-convo
 spec:
   selector:
-    app: anki-convo-chain
+    app: anki-convo
   ports:
   - protocol: TCP
     port: 8800

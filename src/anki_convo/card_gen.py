@@ -1,12 +1,15 @@
 import json
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from functools import lru_cache
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional
+
+import requests
 
 from .card import TranslationCard
 from .chains.llm import LLMChain, LLMChainInput
+from .constants import DEFAULT_N_CARDS, DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE
 from .error import CardGenerationError, ChainError
-from .factory import get_llm, get_llm_name, get_prompt
+from .factory import get_api_url, get_llm, get_llm_name, get_prompt, get_prompt_name
 from .logging import get_logger
 
 logger = get_logger(__name__)
@@ -37,17 +40,12 @@ def parse_text_card_response(response: Dict[str, str]) -> List[TranslationCard]:
     return [TranslationCard(**card_dict) for card_dict in card_dicts]
 
 
-DEFAULT_N_CARDS = 1
-DEFAULT_SOURCE_LANGUAGE = "English"
-DEFAULT_TARGET_LANGUAGE = "Ukrainian"
-
-
 @dataclass(frozen=True)
 class CardGeneratorConfig:
     """Configuration for the CardGenerator."""
 
-    prompt_name: str
     llm: str = field(default_factory=get_llm_name)
+    prompt_name: str = field(default_factory=get_prompt_name)
     n_cards: int = DEFAULT_N_CARDS
     source_language: str = DEFAULT_SOURCE_LANGUAGE
     target_language: str = DEFAULT_TARGET_LANGUAGE
@@ -70,6 +68,19 @@ class LLMTranslationCardGenerator(CardGenerator):
             "target_language": self.target_language,
             "card_json": card.to_json(),
         }
+
+    @classmethod
+    def from_config(cls, config: CardGeneratorConfig) -> "LLMTranslationCardGenerator":
+        """Create an LLMTranslationCardGenerator from a config."""
+        llm = get_llm(config.llm)
+        prompt = get_prompt(config.prompt_name)
+        chain = LLMChain(llm=llm, prompt=prompt)
+        return cls(
+            chain=chain,
+            n_cards=config.n_cards,
+            source_language=config.source_language,
+            target_language=config.target_language,
+        )
 
     def __call__(self, card: TranslationCard) -> List[TranslationCard]:
         """Generate multiple translation cards from an input card inserted into a
@@ -97,17 +108,56 @@ class LLMTranslationCardGenerator(CardGenerator):
         return cards
 
 
-def create_card_generator(config: CardGeneratorConfig):
+@dataclass
+class RemoteCardGenerator(CardGenerator):
+    """Can be called to generate translation cards from an input card by sending a
+    request to a remote server."""
+
+    url: str
+    config: CardGeneratorConfig = field(default_factory=CardGeneratorConfig)
+
+    @property
+    def n_cards(self) -> int:
+        """Number of cards to generate."""
+        return self.config.n_cards
+
+    def __call__(self, card: TranslationCard) -> List[TranslationCard]:
+        """Generate multiple translation cards from an input card inserted into a
+        prompt."""
+        logger.debug(
+            f"{self.__class__.__name__} generating {self.n_cards} cards "
+            f"from card {card!r}, using remote server {self.url}"
+        )
+        if self.n_cards == 0:
+            return []
+
+        request_body = {
+            "card_generator": asdict(self.config),
+            "card": asdict(card),
+        }
+
+        response = requests.post(self.url, json=request_body, timeout=30)
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            msg = f"Error generating card using remote server: {response}"
+            raise CardGenerationError(msg) from e
+
+        response_json = response.json()
+        cards = [TranslationCard.from_dict(card_dict) for card_dict in response_json]
+
+        return cards
+
+
+def create_card_generator(config: CardGeneratorConfig, url: Optional[str] = None):
     """Create a CardGenerator from the config."""
-    llm = get_llm(config.llm)
-    prompt = get_prompt(config.prompt_name)
-    chain = LLMChain(llm=llm, prompt=prompt)
-    card_generator = LLMTranslationCardGenerator(
-        chain=chain,
-        n_cards=config.n_cards,
-        source_language=config.source_language,
-        target_language=config.target_language,
-    )
+    if url is None:
+        url = get_api_url()
+
+    if url is None:
+        card_generator = LLMTranslationCardGenerator.from_config(config)
+    else:
+        card_generator = RemoteCardGenerator(url=url, config=config)
 
     return lru_cache(maxsize=None)(card_generator)
 
