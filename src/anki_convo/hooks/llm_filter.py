@@ -97,6 +97,21 @@ class LLMFilter:
 
         new_card = next(iter(self.card_generator(input_card)))
         new_field_text = self.language_field_names.get_field_text(new_card, field_name)
+
+        if new_field_text.strip() == "":
+            logger.warning(
+                f"Empty field text. Returning field text {field_text!r} unchanged"
+            )
+            if field_text.strip() == "":
+                return (
+                    f"<llm filter was applied to an empty field. The LLM will be more "
+                    f"effective at generating cards if both "
+                    f"the '{self.language_field_names.source}' field and "
+                    f"the '{self.language_field_names.target}' field are filled with "
+                    f"words in the source and target languages, respectively.>"
+                )
+
+            return field_text
         return new_field_text
 
 
