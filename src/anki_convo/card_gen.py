@@ -34,7 +34,6 @@ def parse_translation_card_response(response: Dict[str, str]) -> List[Translatio
     # But the response may be longer and require more tokens (more expensive).
     # TODO In any case, probably want to parse the response into a list of
     # dictionaries first, then convert each to cards.
-    response = response["text"]
     card_dicts = json.loads(response)
 
     return [TranslationCard(**card_dict) for card_dict in card_dicts]
@@ -56,7 +55,7 @@ class LLMTranslationCardGenerator:
     """Can be called to generate translation cards from an input card inserted into a
     prompt."""
 
-    chain: LLMChain
+    chain: Callable[[LLMChainInput], str]
     n_cards: int
     source_language: str
     target_language: str
