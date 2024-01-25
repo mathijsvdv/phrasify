@@ -37,3 +37,8 @@ class Always(Callable[..., T_co]):
 
     def __call__(self, *args, **kwargs) -> T_co:  # noqa: ARG002
         return self.value
+
+
+def identity(x):
+    """Identity function."""
+    return x

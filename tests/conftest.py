@@ -5,7 +5,7 @@ import pytest
 
 from anki_convo.card import TranslationCard
 from anki_convo.card_gen import LLMTranslationCardGenerator
-from tests.mocks import Always
+from tests.mocks import Always, identity
 
 
 @pytest.fixture(params=[0, 1, 3, 5])
@@ -60,14 +60,32 @@ llm_card_generation_expectations_params = {
 }
 
 
+def surround_with_json_block(s: str) -> str:
+    return f"""
+Absolutely! Here are some cards:
+
+```json
+{s}
+```
+
+This is the end of the cards.
+"""
+
+
+@pytest.fixture(params=[identity, surround_with_json_block])
+def transform_response(request):
+    return request.param
+
+
 @pytest.fixture(
     params=llm_card_generation_expectations_params.values(),
     ids=llm_card_generation_expectations_params.keys(),
 )
-def llm_card_generation_expectation(request):
+def llm_card_generation_expectation(request, transform_response):
     """Fixture containing the response from the LLM (input for
     LLMTranslationCardGenerator) and the expected cards."""
     response, expected_cards = request.param
+    response = transform_response(response)
     return LLMCardGenerationExpectation(
         response=response, expected_cards=expected_cards
     )

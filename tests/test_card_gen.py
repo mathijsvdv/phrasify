@@ -49,14 +49,22 @@ def test_llm_translation_card_generator_chain_error(
         llm_translation_card_generator(card)
 
 
+@pytest.mark.parametrize(
+    "llm_response",
+    [
+        "This is not a valid JSON string",
+        '{"cards": [{"source": "friend", "target": "друг"}]}',
+        '[{"front": "friend", "back": "друг"}]',
+    ],
+)
 def test_llm_translation_card_generator_invalid_response(
-    llm_translation_card_generator, mocker
+    llm_translation_card_generator, mocker, llm_response
 ):
     """Test that llm_translation_card_generator raises a CardGenerationError when the
     chain returns an invalid response."""
     card = TranslationCard()
     mocker.patch.object(
-        llm_translation_card_generator, "chain", return_value="invalid_response"
+        llm_translation_card_generator, "chain", return_value=llm_response
     )
     with pytest.raises(CardGenerationError, match="Error parsing response from chain"):
         llm_translation_card_generator(card)
