@@ -22,11 +22,11 @@ def init_package():
     init_openai()
 
 
-def init_addon():
+def init_addon():  # pragma: no cover
     logger.info("Initializing addon")
     init_hooks()
 
 
 init_package()
-if os.getenv("INIT_ANKI_CONVO_ADDON", "true").lower() == "true":
+if os.getenv("INIT_ANKI_CONVO_ADDON", "true").lower() == "true":  # pragma: no cover
     init_addon()
