@@ -82,6 +82,12 @@ all = [
   "typing",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+  "slow: mark test as slow to run (deselect with '-m \"not slow\"')",
+  "expensive: mark test as expensive (costly) to run (deselect with '-m \"not expensive\"')",
+]
+
 [tool.black]
 target-version = ["py37"]
 line-length = 88

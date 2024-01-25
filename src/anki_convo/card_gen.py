@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 CardGenerator = Callable[[TranslationCard], List[TranslationCard]]
 
 
-def parse_text_card_response(response: Dict[str, str]) -> List[TranslationCard]:
+def parse_translation_card_response(response: Dict[str, str]) -> List[TranslationCard]:
     """Parse the response from an LLM into a list of TranslationCard objects"""
     # TODO If using CSV, need to be robust to:
     #   - Multiple sentences
@@ -100,7 +100,7 @@ class LLMTranslationCardGenerator:
             raise CardGenerationError(msg) from e
 
         try:
-            cards = parse_text_card_response(response)
+            cards = parse_translation_card_response(response)
         except json.JSONDecodeError as e:
             msg = f"Error parsing response from chain: {response}"
             raise CardGenerationError(msg) from e

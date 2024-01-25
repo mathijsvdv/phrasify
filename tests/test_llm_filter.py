@@ -1,28 +1,28 @@
 import pytest
 
-from anki_convo.card import TextCard
-from anki_convo.chains.llm import LLMChain
-from anki_convo.factory import get_card_side, get_prompt
+from anki_convo.card import TranslationCard
+from anki_convo.card_gen import CardGeneratorConfig
 from anki_convo.hooks.llm_filter import (
-    CardGenerator,
-    CardGeneratorConfig,
-    ChainCardGenerator,
+    LanguageFieldNames,
     LLMFilter,
     LLMFilterConfig,
     parse_llm_filter_name,
-    parse_text_card_response,
 )
-from anki_convo.llms.openai import OpenAI
 
 
 def test_parse_llm_filter_name_valid():
-    filter_name = "llm vocab-to-sentence lang_front=English lang_back=Ukrainian front"
+    filter_name = (
+        "llm vocab-to-sentence source_lang=English target_lang=Ukrainian "
+        "source_field=Front target_field=Back"
+    )
     result = parse_llm_filter_name(filter_name)
     expected = LLMFilterConfig(
         card_generator=CardGeneratorConfig(
-            prompt_name="vocab-to-sentence", lang_front="English", lang_back="Ukrainian"
+            prompt_name="vocab-to-sentence",
+            source_language="English",
+            target_language="Ukrainian",
         ),
-        card_side="front",
+        language_field_names=LanguageFieldNames(source="Front", target="Back"),
     )
 
     assert result == expected
@@ -34,93 +34,9 @@ def test_parse_llm_filter_name_invalid():
         parse_llm_filter_name(filter_name)
 
 
-@pytest.mark.parametrize(
-    ("response", "expected_cards"),
-    [
-        ("[]", []),
-        (
-            '[{"front": "Hello, how are you?", "back": "Привіт, як справи?"}]',
-            [TextCard(front="Hello, how are you?", back="Привіт, як справи?")],
-        ),
-        (
-            (
-                '[{"front": "Hello, how are you?", "back": "Привіт, як справи?"}, '
-                '{"front": "Good morning, have a nice day!",'
-                ' "back": "Доброго ранку, маєте чудовий день!"}]'
-            ),
-            [
-                TextCard(front="Hello, how are you?", back="Привіт, як справи?"),
-                TextCard(
-                    front="Good morning, have a nice day!",
-                    back="Доброго ранку, маєте чудовий день!",
-                ),
-            ],
-        ),
-        # Weirdly formatted JSON
-        ("[         ]", []),
-        (
-            (
-                '[          {  \n"front": "Hello, how are you?"  ,'
-                '\n\n"back":   "Привіт, як справи?"},   '
-                '\n\n\t{"front":    "Good morning, have a nice day!",'
-                '\n"back": "Доброго ранку, маєте чудовий день!"}\n\n\n]'
-            ),
-            [
-                TextCard(front="Hello, how are you?", back="Привіт, як справи?"),
-                TextCard(
-                    front="Good morning, have a nice day!",
-                    back="Доброго ранку, маєте чудовий день!",
-                ),
-            ],
-        ),
-    ],
-)
-def test_parse_text_card_response_valid(response, expected_cards):
-    actual_cards = parse_text_card_response(response)
-    assert actual_cards == expected_cards
-
-
-@pytest.fixture(params=[0, 1, 3, 5])
-def n_cards(request):
-    return request.param
-
-
-@pytest.fixture()
-def language_card_generator(n_cards):
-    chain = LLMChain(
-        llm=OpenAI(model="gpt-3.5-turbo"), prompt=get_prompt("vocab-to-sentence")
-    )
-
-    generator = ChainCardGenerator(
-        chain=chain,
-        chain_input={
-            "lang_front": "English",
-            "lang_back": "Ukrainian",
-            "n_cards": n_cards,
-        },
-    )
-    return generator
-
-
-@pytest.mark.slow
-@pytest.mark.expensive
-@pytest.mark.parametrize("field_text", ["friend", "to give", "love"])
-def test_language_card_generator(language_card_generator, field_text):
-    actual_cards = language_card_generator(field_text)
-
-    # TODO The language card generator is non-deterministic, so we cannot come up with
-    #   fixed unit tests for this. One possibility is to judge the quality of the output
-    #   through a metric like BLEU score, or let a powerful LLM like GPT-4 rate the
-    #   output based on some rules.
-    #   We can also try PromptWatch.
-
-    assert len(actual_cards) == language_card_generator.n_cards
-    for card in actual_cards:
-        assert isinstance(card, TextCard)
-
-
-class CountingCardGenerator(CardGenerator):
-    """Card generator that returns a fixed number of cards with the same front and back.
+class CountingCardGenerator:
+    """Card generator that returns a fixed number of cards with the same source
+    and target.
 
     It keeps track of how often it was called in order to test that lru_cache works.
     """
@@ -129,13 +45,15 @@ class CountingCardGenerator(CardGenerator):
         self.n_cards = n_cards
         self.n_times_called = 0
 
-    def __call__(self, field_text):
+    def __call__(self, card: TranslationCard):
         self.n_times_called += 1
-        front = f"Front of card for '{field_text}' after {self.n_times_called} call(s)"
-        back = f"Back of card for '{field_text}' after {self.n_times_called} call(s)"
+        source = f"Source of card for {card} after {self.n_times_called} call(s)"
+        target = f"Target of card for {card} after {self.n_times_called} call(s)"
 
         return [
-            TextCard(front=f"{front} (card {i})", back=f"{back} (card {i})")
+            TranslationCard(
+                source=f"{source} (card {i})", target=f"{target} (card {i})"
+            )
             for i in range(self.n_cards)
         ]
 
@@ -147,14 +65,13 @@ def counting_card_generator(n_cards):
     return card_generator
 
 
-@pytest.fixture(params=["front", "back"])
-def card_side(request):
-    return get_card_side(request.param)
-
-
 @pytest.fixture()
-def llm_filt(counting_card_generator, card_side):
-    filt = LLMFilter(card_generator=counting_card_generator, card_side=card_side)
+def llm_filt(counting_card_generator):
+    language_field_names = LanguageFieldNames(source="Front", target="Back")
+    filt = LLMFilter(
+        card_generator=counting_card_generator,
+        language_field_names=language_field_names,
+    )
     return filt
 
 
