@@ -29,6 +29,26 @@ class CountingCardGenerator:
         ]
 
 
+class EmptyCardGenerator:
+    """Card generator that returns empty cards."""
+
+    def __init__(self, n_cards: int = 1):
+        self.n_cards = n_cards
+
+    def __call__(self, card: TranslationCard):  # noqa: ARG002
+        return [TranslationCard() for _ in range(self.n_cards)]
+
+
+class ErrorCardGenerator:
+    """Card generator that raises an error."""
+
+    def __init__(self, error: Exception):
+        self.error = error
+
+    def __call__(self, card: TranslationCard):  # noqa: ARG002
+        raise self.error
+
+
 class Always(Callable[..., T_co]):
     """Callable that always returns the same value."""
 

@@ -4,6 +4,7 @@ import pytest
 
 from anki_convo.card import TranslationCard
 from anki_convo.card_gen import CardGeneratorConfig
+from anki_convo.error import CardGenerationError
 from anki_convo.hooks.llm_filter import (
     HasNote,
     LanguageFieldNames,
@@ -11,7 +12,12 @@ from anki_convo.hooks.llm_filter import (
     LLMFilterConfig,
     parse_llm_filter_name,
 )
-from tests.mocks import CountingCardGenerator, MockTemplateRenderContext
+from tests.mocks import (
+    CountingCardGenerator,
+    EmptyCardGenerator,
+    ErrorCardGenerator,
+    MockTemplateRenderContext,
+)
 
 
 def test_parse_llm_filter_name_valid():
@@ -45,6 +51,20 @@ def counting_card_generator(n_cards):
     return card_generator
 
 
+@pytest.fixture()
+def empty_card_generator(n_cards):
+    card_generator = EmptyCardGenerator(n_cards=n_cards)
+
+    return card_generator
+
+
+@pytest.fixture()
+def error_card_generator():
+    card_generator = ErrorCardGenerator(error=CardGenerationError())
+
+    return card_generator
+
+
 @pytest.fixture(
     params=[("Front", "Back"), ("Back", "Front"), ("Source", "Target")],
     ids=["Front-Back", "Back-Front", "Source-Target"],
@@ -64,11 +84,42 @@ def llm_filt(counting_card_generator, language_field_names) -> LLMFilter:
 
 
 @pytest.fixture()
+def llm_filt_empty_card(empty_card_generator, language_field_names) -> LLMFilter:
+    filt = LLMFilter(
+        card_generator=lru_cache(maxsize=None)(empty_card_generator),
+        language_field_names=language_field_names,
+    )
+    return filt
+
+
+@pytest.fixture()
+def llm_filt_error(error_card_generator, language_field_names) -> LLMFilter:
+    filt = LLMFilter(
+        card_generator=lru_cache(maxsize=None)(error_card_generator),
+        language_field_names=language_field_names,
+    )
+    return filt
+
+
+@pytest.fixture()
 def context(language_field_names) -> MockTemplateRenderContext:
     """Context containing information about the note that is being rendered."""
     note = {
         language_field_names.source: "decision",
         language_field_names.target: "рішення",
+    }
+    return MockTemplateRenderContext(note=note)
+
+
+@pytest.fixture()
+def context_empty_card(language_field_names) -> MockTemplateRenderContext:
+    """Context containing information about the note that is being rendered.
+
+    In this case, the note contains empty fields.
+    """
+    note = {
+        language_field_names.source: "",
+        language_field_names.target: "",
     }
     return MockTemplateRenderContext(note=note)
 
@@ -82,22 +133,6 @@ def example_context() -> MockTemplateRenderContext:
     in Tools -> Manage Note Types -> Cards.
     """
     return MockTemplateRenderContext(note={"Front": "(Front)", "Back": "(Back)"})
-
-
-# TODO Test that the original field text is returned if:
-#      - the `card_generator` raises an CardGenerationError
-#      - no cards are generated
-#      - the new field text is empty (and the original field text is not)
-# TODO Test that a recommendation to fill both the source and target fields is returned
-#      if both original and new field texts are empty
-
-# TODO The LLMFilter should produce the same card, given:
-#      - the same card generator and the same card
-#      - the same context
-#      This means:
-#      - The card generator should be the same instance within the same context
-#      - If the card generator is the same instance, the card generator should return
-#        the same cards given the same input card
 
 
 def test_llm_filter(llm_filt: LLMFilter, context: HasNote):
@@ -148,6 +183,92 @@ def test_llm_filter_example_text(
     result = llm_filt(
         field_text=field_text, field_name=field_name, context=example_context
     )
+
+    assert result == expected
+
+
+# TODO The LLMFilter should produce the same card, given:
+#      - the same card generator and the same card
+#      - the same context
+#      This means:
+#      - The card generator should be the same instance within the same context
+#      - If the card generator is the same instance, the card generator should return
+#        the same cards given the same input card
+
+
+@pytest.mark.parametrize("source_target", ["source", "target"])
+def test_llm_filter_card_generation_error(
+    llm_filt_error: LLMFilter, context: HasNote, source_target: str
+):
+    """Test that the LLMFilter returns the original field text when the card generator
+    raises a CardGenerationError.
+    """
+    note = context.note()
+    filt = llm_filt_error
+    field_name = getattr(filt.language_field_names, source_target)
+    field_text = note[field_name]
+    expected = field_text
+
+    result = filt(field_text=field_text, field_name=field_name, context=context)
+
+    assert result == expected
+
+
+@pytest.mark.parametrize("source_target", ["source", "target"])
+@pytest.mark.parametrize("n_cards", [0])
+def test_llm_filter_no_cards(llm_filt: LLMFilter, context: HasNote, source_target: str):
+    """Test that the LLMFilter returns the original field text when the card generator
+    returns no cards.
+    """
+    note = context.note()
+    filt = llm_filt
+    field_name = getattr(filt.language_field_names, source_target)
+    field_text = note[field_name]
+    expected = field_text
+
+    result = filt(field_text=field_text, field_name=field_name, context=context)
+
+    assert result == expected
+
+
+@pytest.mark.parametrize("source_target", ["source", "target"])
+def test_llm_filter_empty_field_text(
+    llm_filt_empty_card: LLMFilter, context: HasNote, source_target: str
+):
+    """Test that the LLMFilter returns the original field text when the new field text
+    is empty (and the original field text is not).
+    """
+    note = context.note()
+    filt = llm_filt_empty_card
+    field_name = getattr(filt.language_field_names, source_target)
+    field_text = note[field_name]
+    expected = field_text
+
+    result = filt(field_text=field_text, field_name=field_name, context=context)
+
+    assert result == expected
+
+
+def test_llm_filter_empty_field_text_both(
+    llm_filt_empty_card: LLMFilter, context_empty_card: HasNote
+):
+    """Test that the LLMFilter returns a recommendation to fill both the source and
+    target fields when the new field text is empty and the original field text is also
+    empty.
+    """
+    filt = llm_filt_empty_card
+    context = context_empty_card
+    field_name = filt.language_field_names.source
+    field_text = ""
+    expected = (
+        "(llm filter was applied to an empty field. The LLM will be more "
+        "effective at generating cards if both "
+        f"the '{filt.language_field_names.source}' field and "
+        f"the '{filt.language_field_names.target}' field are filled with "
+        f"words in the source and target languages, respectively.)"
+    )
+
+    result = filt(field_text=field_text, field_name=field_name, context=context)
 
     assert result == expected
 
