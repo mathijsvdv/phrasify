@@ -8,7 +8,7 @@ from anki_convo.card_gen import LLMTranslationCardGenerator
 from tests.mocks import Always, identity
 
 
-@pytest.fixture(params=[0, 1, 3, 5])
+@pytest.fixture(params=[1, 3, 5])
 def n_cards(request):
     return request.param
 

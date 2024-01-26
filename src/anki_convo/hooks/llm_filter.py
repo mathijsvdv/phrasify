@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Mapping
-
-if TYPE_CHECKING:
-    from anki.template import TemplateRenderContext
+from typing import Mapping, Protocol
 
 from ..card import TranslationCard
 from ..card_gen import (
@@ -58,6 +55,21 @@ class LLMFilterConfig:
     language_field_names: LanguageFieldNames
 
 
+class HasNote(Protocol):
+    """Protocol for an object that has a note (`anki.template.TemplateRenderContext`)
+
+    This protocol has been introduced to more loosely couple the LLMFilter to Anki
+    and make it easier to test.
+    """
+
+    def note(self) -> Mapping[str, str]:
+        """Return the note that is being rendered.
+
+        A note is a mapping of field names to field values for a card.
+        """
+        ...
+
+
 @dataclass
 class LLMFilter:
     """Filter that generates a new card using an LLM and replaces the given field with
@@ -69,12 +81,10 @@ class LLMFilter:
         self.card_generator = card_generator
         self.language_field_names = language_field_names
 
-    def __call__(
-        self, field_text: str, field_name: str, context: TemplateRenderContext
-    ) -> str:
+    def __call__(self, field_text: str, field_name: str, context: HasNote) -> str:
         if field_text == f"({field_name})":
             # It's just the example text for the field, make a placeholder
-            return f"<llm filter applied to '{field_text}' field>"
+            return f"(llm filter applied to '{field_name}' field)"
 
         input_card = self.language_field_names.create_card(context.note())
 
@@ -104,11 +114,11 @@ class LLMFilter:
             )
             if field_text.strip() == "":
                 return (
-                    f"<llm filter was applied to an empty field. The LLM will be more "
+                    f"(llm filter was applied to an empty field. The LLM will be more "
                     f"effective at generating cards if both "
                     f"the '{self.language_field_names.source}' field and "
                     f"the '{self.language_field_names.target}' field are filled with "
-                    f"words in the source and target languages, respectively.>"
+                    f"words in the source and target languages, respectively.)"
                 )
 
             return field_text
@@ -172,7 +182,7 @@ def llm_filter(
     field_text: str,
     field_name: str,
     filter_name: str,
-    context: TemplateRenderContext,
+    context: HasNote,
 ) -> str:
     """Filter that generates the front or back of a language card from the front text
 
@@ -219,7 +229,7 @@ def llm_filter(
 
 
 def invalid_name(filter_name: str) -> str:
-    return f"Invalid filter name: {filter_name}"
+    return f"(Invalid filter name: {filter_name})"
 
 
 def init_llm_filter():

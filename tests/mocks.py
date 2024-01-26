@@ -1,4 +1,4 @@
-from typing import Callable, TypeVar
+from typing import Callable, Mapping, TypeVar
 
 from anki_convo.card import TranslationCard
 
@@ -9,7 +9,7 @@ class CountingCardGenerator:
     """Card generator that returns a fixed number of cards with the same source
     and target.
 
-    It keeps track of how often it was called in order to test that lru_cache works.
+    It keeps track of how often it was called in order to test that ` lru_cache` works.
     """
 
     def __init__(self, n_cards: int = 1):
@@ -42,3 +42,14 @@ class Always(Callable[..., T_co]):
 def identity(x):
     """Identity function."""
     return x
+
+
+class MockTemplateRenderContext:
+    def __init__(self, note: Mapping[str, str]):
+        self._note = note
+
+    def note(self):
+        return self._note
+
+    def copy(self):
+        return type(self)(self._note.copy())
