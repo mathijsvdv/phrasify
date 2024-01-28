@@ -1,10 +1,15 @@
 import dataclasses
 from functools import lru_cache
+from typing import Mapping
 
 import pytest
 
 from anki_convo.card import TranslationCard
-from anki_convo.card_gen import CardGeneratorConfig, cached2_card_generator_factory
+from anki_convo.card_gen import (
+    CardGeneratorConfig,
+    CardGeneratorFactory,
+    cached2_card_generator_factory,
+)
 from anki_convo.error import CardGenerationError
 from anki_convo.hooks.llm_filter import (
     HasNote,
@@ -354,46 +359,103 @@ def test_cached2_card_generator_factory():
     assert all_unique([id(cg) for cg in card_generators])
 
 
-# def test_llm_filter_hook(
-#     field_text: str,
-#     field_name: str,
-#     filter_name: str,
-#     context: HasNote
-# ):
-#     """Test that the LLMFilter returns the expected card."""
-#     card_generator_factory = create_counting_card_generator
+def _test_llm_filter_hook(
+    note: Mapping[str, str],
+    filter_name: str,
+    context: HasNote,
+    card_generator_factory: CardGeneratorFactory,
+    field_name: str,
+    expected: str,
+):
+    """Test that the LLMFilter returns the expected field text (depending on the
+    field)"""
+    field_text = note[field_name]
+    input_card = TranslationCard(source=note["Front"], target=note["Back"])
+    expected = expected.format(input_card=input_card)
 
-#     actual = llm_filter(
-#         field_text=field_text, field_name=field_name, filter_name=filter_name,
-#         context=context,
-#         card_generator_factory=card_generator_factory
-#     )
-#     note = context.note()
-#     source_field_name = llm_filt.language_field_names.source
-#     target_field_name = llm_filt.language_field_names.target
+    actual = llm_filter(
+        field_text=field_text,
+        field_name=field_name,
+        filter_name=filter_name,
+        context=context,
+        card_generator_factory=card_generator_factory,
+    )
 
-#     field_name = llm_filt.language_field_names.source
-#     field_text = note[field_name]
-#     source = llm_filt(field_text=field_text, field_name=field_name, context=context)
+    assert actual == expected
 
-#     field_name = llm_filt.language_field_names.target
-#     field_text = note[field_name]
-#     target = llm_filt(field_text=field_text, field_name=field_name, context=context)
+    actual_context_copy = llm_filter(
+        field_text=field_text,
+        field_name=field_name,
+        filter_name=filter_name,
+        context=context.copy(),
+        card_generator_factory=card_generator_factory,
+    )
 
-#     actual_card = TranslationCard(source=source, target=target)
+    assert actual_context_copy == expected
 
-#     input_card = TranslationCard(
-#         source=note[source_field_name], target=note[target_field_name]
-#     )
-#     expected_card = TranslationCard(
-#         source=f"Source of card for {input_card} after 1 call(s) (card 0)",
-#         target=f"Target of card for {input_card} after 1 call(s) (card 0)",
-#     )
-#     actual = llm_filter(field_text=field_text, field_name=field_name,
-#                         filter_name=filter_name, context=context)
-#     expected = "friend"
 
-#     assert actual == expected
+def _test_llm_filter_hook_front(
+    note: Mapping[str, str],
+    filter_name: str,
+    context: HasNote,
+    card_generator_factory: CardGeneratorFactory,
+):
+    """Test that the LLMFilter returns the expected front of the card."""
+    _test_llm_filter_hook(
+        note=note,
+        filter_name=filter_name,
+        context=context,
+        card_generator_factory=card_generator_factory,
+        field_name="Front",
+        expected="Source of card for {input_card} after 1 call(s) (card 0)",
+    )
+
+
+def _test_llm_filter_hook_back(
+    note: Mapping[str, str],
+    filter_name: str,
+    context: HasNote,
+    card_generator_factory: CardGeneratorFactory,
+):
+    """Test that the LLMFilter returns the expected back of the card."""
+    _test_llm_filter_hook(
+        note=note,
+        filter_name=filter_name,
+        context=context,
+        card_generator_factory=card_generator_factory,
+        field_name="Back",
+        expected="Target of card for {input_card} after 1 call(s) (card 0)",
+    )
+
+
+def test_llm_filter_hook():
+    """Test that the LLMFilter returns the expected card."""
+    # Arrange
+    card_generator_factory = create_counting_card_generator
+
+    filter_name = (
+        "llm vocab-to-sentence source_lang=English target_lang=Ukrainian "
+        "source_field=Front target_field=Back"
+    )
+    filter_name_diff = (
+        "llm vocab-to-sentence source_lang=English target_lang=Spanish "
+        "source_field=Front target_field=Back"
+    )
+
+    context = MockTemplateRenderContext({"Front": "friend", "Back": "друг"})
+    context_diff = MockTemplateRenderContext({"Front": "friend", "Back": "amigo"})
+    note = context.note()
+    note_diff = context_diff.note()
+
+    # Act & Assert
+    nt_filtn_ctxs = [
+        (note, filter_name, context),
+        (note_diff, filter_name_diff, context_diff),
+    ]
+
+    for nt, filtn, ctx in nt_filtn_ctxs:
+        _test_llm_filter_hook_front(nt, filtn, ctx, card_generator_factory)
+        _test_llm_filter_hook_back(nt, filtn, ctx, card_generator_factory)
 
 
 def test_llm_filter_hook_does_not_start_with_llm(context: HasNote):

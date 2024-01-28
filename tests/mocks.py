@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Callable, Mapping, TypeVar
 
 from anki_convo.card import TranslationCard
@@ -80,4 +81,4 @@ def create_counting_card_generator(
     config: CardGeneratorConfig,
 ) -> CountingCardGenerator:
     """Create a CountingCardGenerator from a config."""
-    return CountingCardGenerator(config.n_cards)
+    return lru_cache(maxsize=None)(CountingCardGenerator(config.n_cards))

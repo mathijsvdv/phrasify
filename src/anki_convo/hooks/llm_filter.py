@@ -105,7 +105,7 @@ class LLMFilter:
             # No cards generated, return the field text unchanged
             return field_text
 
-        new_card = next(iter(self.card_generator(input_card)))
+        new_card = next(iter(cards))
         new_field_text = self.language_field_names.get_field_text(new_card, field_name)
 
         if new_field_text.strip() == "":
@@ -225,7 +225,7 @@ def llm_filter(
         card_generator_factory = create_card_generator
 
     card_generator_factory = cached2_card_generator_factory(
-        id(context), create_card_generator
+        id(context), card_generator_factory
     )
     filt = create_llm_filter(
         filter_config, card_generator_factory=card_generator_factory
