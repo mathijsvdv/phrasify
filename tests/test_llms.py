@@ -1,5 +1,7 @@
 import pytest
+from openai.error import OpenAIError
 
+from anki_convo.error import LLMError
 from anki_convo.llms.openai import OpenAI
 
 
@@ -25,3 +27,19 @@ def test_openai_call(openai_llm, mocker):
         messages=[{"role": "user", "content": prompt}],
     )
     assert response == "Hello, world!"
+
+
+def test_openai_error(openai_llm, mocker):
+    """Test that an OpenAIError is raised as an LLMError."""
+    mock_create = mocker.patch(
+        "openai.ChatCompletion.create",
+        side_effect=OpenAIError("Something went wrong"),
+    )
+
+    with pytest.raises(LLMError):
+        openai_llm("Hello, world!")
+
+    mock_create.assert_called_once_with(
+        model="test-model",
+        messages=[{"role": "user", "content": "Hello, world!"}],
+    )

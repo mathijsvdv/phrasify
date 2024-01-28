@@ -1,27 +1,21 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from ..error import LLMError
 from ..llms.base import LLM
 from .base import Chain
 
 LLMChainInput = Dict[str, Any]
-LLMChainOutput = Dict[str, str]
 
 
 @dataclass
-class LLMChain(Chain[LLMChainInput, LLMChainOutput]):
+class LLMChain(Chain[LLMChainInput, str]):
     """Chain that uses an LLM together with a prompt template to generate a response."""
 
     llm: LLM
     prompt: str
-    output_key: str = "text"
 
-    @property
-    def output_keys(self) -> List[str]:
-        return [self.output_key]
-
-    def _call(self, x: LLMChainInput, **kwargs: Any) -> LLMChainOutput:
+    def _call(self, x: LLMChainInput, **kwargs: Any) -> str:
         """Run the chain on the given input `x`."""
         prompt = self.prompt.format(**x)
         try:
@@ -29,5 +23,4 @@ class LLMChain(Chain[LLMChainInput, LLMChainOutput]):
         except LLMError as e:
             self._raise(e)
 
-        output = dict(inputs=x, **{self.output_key: text})
-        return output
+        return text

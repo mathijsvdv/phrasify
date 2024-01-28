@@ -49,7 +49,11 @@ test = "pytest {args:tests}"
 test-cov = "coverage run -m pytest {args:tests}"
 cov-report = [
   "- coverage combine",
-  "coverage report",
+  "coverage report -m",
+]
+cov-html = [
+  "- coverage combine",
+  "coverage html",
 ]
 cov = [
   "test-cov",
@@ -80,6 +84,12 @@ fmt = [
 all = [
   "style",
   "typing",
+]
+
+[tool.pytest.ini_options]
+markers = [
+  "slow: mark test as slow to run (deselect with '-m \"not slow\"')",
+  "expensive: mark test as expensive (costly) to run (deselect with '-m \"not expensive\"')",
 ]
 
 [tool.black]
@@ -150,6 +160,7 @@ branch = true
 parallel = true
 omit = [
   "src/anki_convo/__about__.py",
+  "tests/mocks.py",
 ]
 
 [tool.coverage.paths]
@@ -161,4 +172,5 @@ exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
+  "def _[a-zA-Z0-9]",
 ]

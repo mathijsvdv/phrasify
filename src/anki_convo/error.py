@@ -19,6 +19,12 @@ class LLMError(AnkiConvoError):
     pass
 
 
+class LLMParsingError(AnkiConvoError):
+    """Exceptions raised while parsing LLM output."""
+
+    pass
+
+
 class ChainError(AnkiConvoError):
     """Exceptions raised by Chains."""
 

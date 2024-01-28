@@ -1,14 +1,15 @@
 import json
+import re
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
-from typing import Callable, Dict, List, Optional
+from typing import Callable, List, Optional
 
 import requests
 
 from .card import TranslationCard
 from .chains.llm import LLMChain, LLMChainInput
 from .constants import DEFAULT_N_CARDS, DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE
-from .error import CardGenerationError, ChainError
+from .error import CardGenerationError, ChainError, LLMParsingError
 from .factory import get_api_url, get_llm, get_llm_name, get_prompt, get_prompt_name
 from .logging import get_logger
 
@@ -18,7 +19,7 @@ logger = get_logger(__name__)
 CardGenerator = Callable[[TranslationCard], List[TranslationCard]]
 
 
-def parse_text_card_response(response: Dict[str, str]) -> List[TranslationCard]:
+def _parse_translation_card_response(response: str) -> List[TranslationCard]:
     """Parse the response from an LLM into a list of TranslationCard objects"""
     # TODO If using CSV, need to be robust to:
     #   - Multiple sentences
@@ -34,10 +35,29 @@ def parse_text_card_response(response: Dict[str, str]) -> List[TranslationCard]:
     # But the response may be longer and require more tokens (more expensive).
     # TODO In any case, probably want to parse the response into a list of
     # dictionaries first, then convert each to cards.
-    response = response["text"]
-    card_dicts = json.loads(response)
 
-    return [TranslationCard(**card_dict) for card_dict in card_dicts]
+    json_response = response
+    match = re.search(r"(?<=```json\n)(.*)(?=\n```)", json_response, re.DOTALL)
+    if match:
+        json_response = match.group(1)
+
+    try:
+        card_dicts = json.loads(json_response)
+    except json.JSONDecodeError as e:
+        message = f"Error parsing response from chain: {response}"
+        raise LLMParsingError(message) from e
+
+    if not isinstance(card_dicts, list):
+        message = f"Expected a list of dictionaries, but got {card_dicts!r}"
+        raise LLMParsingError(message)
+
+    try:
+        cards = [TranslationCard(**card_dict) for card_dict in card_dicts]
+    except TypeError as e:
+        message = f"Error parsing cards from dicts: {card_dicts}"
+        raise LLMParsingError(message) from e
+
+    return cards
 
 
 @dataclass(frozen=True)
@@ -52,11 +72,11 @@ class CardGeneratorConfig:
 
 
 @dataclass
-class LLMTranslationCardGenerator(CardGenerator):
+class LLMTranslationCardGenerator:
     """Can be called to generate translation cards from an input card inserted into a
     prompt."""
 
-    chain: LLMChain
+    chain: Callable[[LLMChainInput], str]
     n_cards: int
     source_language: str
     target_language: str
@@ -100,8 +120,8 @@ class LLMTranslationCardGenerator(CardGenerator):
             raise CardGenerationError(msg) from e
 
         try:
-            cards = parse_text_card_response(response)
-        except json.JSONDecodeError as e:
+            cards = _parse_translation_card_response(response)
+        except LLMParsingError as e:
             msg = f"Error parsing response from chain: {response}"
             raise CardGenerationError(msg) from e
 
@@ -109,7 +129,7 @@ class LLMTranslationCardGenerator(CardGenerator):
 
 
 @dataclass
-class RemoteCardGenerator(CardGenerator):
+class RemoteCardGenerator:
     """Can be called to generate translation cards from an input card by sending a
     request to a remote server."""
 
@@ -168,9 +188,9 @@ CardGeneratorFactory = Callable[[CardGeneratorConfig], CardGenerator]
 class CachedCardGeneratorFactory:
     """Create a CardGenerator from the config. Cache the result."""
 
-    def __init__(self, context_id: int):
+    def __init__(self, context_id: int, card_generator_factory: CardGeneratorFactory):
         self.context_id = context_id
-        self._call = lru_cache(maxsize=None)(create_card_generator)
+        self._call = lru_cache(maxsize=None)(card_generator_factory)
 
     def __call__(self, config: CardGeneratorConfig) -> CardGenerator:
         return self._call(config)
