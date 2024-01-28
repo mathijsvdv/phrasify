@@ -1,6 +1,7 @@
 from typing import Callable, Mapping, TypeVar
 
 from anki_convo.card import TranslationCard
+from anki_convo.card_gen import CardGeneratorConfig
 
 T_co = TypeVar("T_co", covariant=True)
 
@@ -73,3 +74,10 @@ class MockTemplateRenderContext:
 
     def copy(self):
         return type(self)(self._note.copy())
+
+
+def create_counting_card_generator(
+    config: CardGeneratorConfig,
+) -> CountingCardGenerator:
+    """Create a CountingCardGenerator from a config."""
+    return CountingCardGenerator(config.n_cards)

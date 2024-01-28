@@ -188,9 +188,9 @@ CardGeneratorFactory = Callable[[CardGeneratorConfig], CardGenerator]
 class CachedCardGeneratorFactory:
     """Create a CardGenerator from the config. Cache the result."""
 
-    def __init__(self, context_id: int):
+    def __init__(self, context_id: int, card_generator_factory: CardGeneratorFactory):
         self.context_id = context_id
-        self._call = lru_cache(maxsize=None)(create_card_generator)
+        self._call = lru_cache(maxsize=None)(card_generator_factory)
 
     def __call__(self, config: CardGeneratorConfig) -> CardGenerator:
         return self._call(config)

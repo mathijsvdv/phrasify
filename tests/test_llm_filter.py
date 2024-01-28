@@ -1,15 +1,18 @@
+import dataclasses
 from functools import lru_cache
 
 import pytest
 
 from anki_convo.card import TranslationCard
-from anki_convo.card_gen import CardGeneratorConfig
+from anki_convo.card_gen import CardGeneratorConfig, cached2_card_generator_factory
 from anki_convo.error import CardGenerationError
 from anki_convo.hooks.llm_filter import (
     HasNote,
     LanguageFieldNames,
     LLMFilter,
     LLMFilterConfig,
+    invalid_name,
+    llm_filter,
     parse_llm_filter_name,
 )
 from tests.mocks import (
@@ -17,6 +20,7 @@ from tests.mocks import (
     EmptyCardGenerator,
     ErrorCardGenerator,
     MockTemplateRenderContext,
+    create_counting_card_generator,
 )
 
 
@@ -187,15 +191,6 @@ def test_llm_filter_example_text(
     assert result == expected
 
 
-# TODO The LLMFilter should produce the same card, given:
-#      - the same card generator and the same card
-#      - the same context
-#      This means:
-#      - The card generator should be the same instance within the same context
-#      - If the card generator is the same instance, the card generator should return
-#        the same cards given the same input card
-
-
 @pytest.mark.parametrize("source_target", ["source", "target"])
 def test_llm_filter_card_generation_error(
     llm_filt_error: LLMFilter, context: HasNote, source_target: str
@@ -273,32 +268,161 @@ def test_llm_filter_empty_field_text_both(
     assert result == expected
 
 
-# @pytest.mark.parametrize()
-# def test_llm_filter(llm_filt: LLMFilter, field_text, field_name, expected):
-#     if llm_filt.card_generator.n_cards == 0:
-#         return field_text
+def test_invalid_name():
+    filter_name = "invalid_filter_name"
+    expected = "(Invalid filter name: invalid_filter_name)"
 
-#     result = llm_filt(field_text=field_text, field_name="Front")
+    result = invalid_name(filter_name)
 
-#     if counting_card_generator.n_cards == 0:
-#         pass
+    assert result == expected
 
-#     # Create an LLMFilter instance
-#     filter = LLMFilter(mock_card_generator, CardSide.FRONT)
 
-#     # Set up the mock to return a TextCard with the expected front and back
-#     mock_card = MagicMock()
-#     mock_card.front = "Hello, how are you?"
-#     mock_card.back = "Привіт, як справи?"
-#     mock_card_generator.return_value = [mock_card]
+# TODO The LLMFilter should produce the same card, given:
+#      - the same card generator and the same card
+#      - the same context
+#      This means:
+#      - The card generator should be the same instance within the same context
+#      - If the card generator is the same instance, the card generator should return
+#        the same cards given the same input card
 
-#     # Call the filter with some field text and name
-#     field_text = "Hello"
-#     field_name = "Front"
-#     result = filter(field_text, field_name)
 
-#     # Check that the mock was called with the expected field text
-#     mock_card_generator.assert_called_once_with(field_text=field_text)
+def all_unique(iterable):
+    """Return True if all elements of the iterable are unique, False otherwise."""
+    return len(set(iterable)) == len(iterable)
 
-#     # Check that the result is the expected card side
-#     assert result == mock_card.front
+
+def test_cached2_card_generator_factory():
+    """Test that the card generator factory returns the same instance of the card
+    generator when called multiple times with the same context and config.
+
+    The context really needs to be the same instance, not just have the same contents.
+    But the config can be a different instance, as long as it has the same contents.
+    """
+
+    contexts = [
+        MockTemplateRenderContext(note={"Front": "friend", "Back": "друг"}),
+        MockTemplateRenderContext(note={"Front": "choice", "Back": "вибір"}),
+    ]
+
+    configs = [
+        CardGeneratorConfig(),
+        CardGeneratorConfig(llm="mistral"),
+        CardGeneratorConfig(n_cards=2),
+        CardGeneratorConfig(llm="mistral", n_cards=2),
+    ]
+
+    card_generator_factory = cached2_card_generator_factory(
+        id(contexts[0]), create_counting_card_generator
+    )
+    card_generator_factory_same = cached2_card_generator_factory(
+        id(contexts[0]), create_counting_card_generator
+    )
+    card_generator_factory_copy = cached2_card_generator_factory(
+        id(contexts[0].copy()), create_counting_card_generator
+    )
+    card_generator_factory_diff = cached2_card_generator_factory(
+        id(contexts[1]), create_counting_card_generator
+    )
+
+    for config in configs:
+        # Card generator was created from the same context and (a copy of) the same
+        # config - should give the same card_generator
+        card_generator1 = card_generator_factory(config)
+        card_generator2 = card_generator_factory_same(dataclasses.replace(config))
+
+        assert card_generator1 is card_generator2
+
+    for config in configs:
+        # Card generator was created from a copy of the context and (a copy of) the same
+        # config - should give different card_generators because context is not the same
+        card_generator1 = card_generator_factory(config)
+        card_generator2 = card_generator_factory_copy(dataclasses.replace(config))
+
+        assert card_generator1 is not card_generator2
+
+    for config in configs:
+        # Card generator was created from a different context and (a copy of) the same
+        # config - should give different card_generators because context is not the same
+        card_generator1 = card_generator_factory(config)
+        card_generator2 = card_generator_factory_diff(dataclasses.replace(config))
+
+        assert card_generator1 is not card_generator2
+
+    # Card generator was created from the same context and different configs
+    # - should give different card_generators because config is not the same
+    card_generators = [card_generator_factory(config) for config in configs]
+    assert all_unique([id(cg) for cg in card_generators])
+
+
+# def test_llm_filter_hook(
+#     field_text: str,
+#     field_name: str,
+#     filter_name: str,
+#     context: HasNote
+# ):
+#     """Test that the LLMFilter returns the expected card."""
+#     card_generator_factory = create_counting_card_generator
+
+#     actual = llm_filter(
+#         field_text=field_text, field_name=field_name, filter_name=filter_name,
+#         context=context,
+#         card_generator_factory=card_generator_factory
+#     )
+#     note = context.note()
+#     source_field_name = llm_filt.language_field_names.source
+#     target_field_name = llm_filt.language_field_names.target
+
+#     field_name = llm_filt.language_field_names.source
+#     field_text = note[field_name]
+#     source = llm_filt(field_text=field_text, field_name=field_name, context=context)
+
+#     field_name = llm_filt.language_field_names.target
+#     field_text = note[field_name]
+#     target = llm_filt(field_text=field_text, field_name=field_name, context=context)
+
+#     actual_card = TranslationCard(source=source, target=target)
+
+#     input_card = TranslationCard(
+#         source=note[source_field_name], target=note[target_field_name]
+#     )
+#     expected_card = TranslationCard(
+#         source=f"Source of card for {input_card} after 1 call(s) (card 0)",
+#         target=f"Target of card for {input_card} after 1 call(s) (card 0)",
+#     )
+#     actual = llm_filter(field_text=field_text, field_name=field_name,
+#                         filter_name=filter_name, context=context)
+#     expected = "friend"
+
+#     assert actual == expected
+
+
+def test_llm_filter_hook_does_not_start_with_llm(context: HasNote):
+    """Test that the LLMFilter returns the original field text when the field text
+    does not start with "(llm".
+    """
+    filter_name = "not llm"
+    actual = llm_filter(
+        field_text="friend",
+        field_name="Front",
+        filter_name=filter_name,
+        context=context,
+    )
+    expected = "friend"
+
+    assert actual == expected
+
+
+def test_llm_filter_hook_invalid_filter_name(context: HasNote):
+    """Test that the LLMFilter returns the original field text when the filter name
+    is invalid.
+    """
+    filter_name = "llm invalid_filter_name"
+    actual = llm_filter(
+        field_text="friend",
+        field_name="Front",
+        filter_name=filter_name,
+        context=context,
+    )
+    expected = invalid_name(filter_name)
+
+    assert actual == expected

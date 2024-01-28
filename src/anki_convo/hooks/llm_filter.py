@@ -183,6 +183,7 @@ def llm_filter(
     field_name: str,
     filter_name: str,
     context: HasNote,
+    card_generator_factory: CardGeneratorFactory | None = None,
 ) -> str:
     """Filter that generates the front or back of a language card from the front text
 
@@ -220,7 +221,12 @@ def llm_filter(
     except ValueError:
         return invalid_name(filter_name)
 
-    card_generator_factory = cached2_card_generator_factory(context_id=id(context))
+    if card_generator_factory is None:
+        card_generator_factory = create_card_generator
+
+    card_generator_factory = cached2_card_generator_factory(
+        id(context), create_card_generator
+    )
     filt = create_llm_filter(
         filter_config, card_generator_factory=card_generator_factory
     )
