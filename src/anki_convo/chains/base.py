@@ -1,7 +1,7 @@
 import asyncio
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Any, Callable, Generic, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from ..error import ChainError
 
@@ -9,7 +9,7 @@ TIn_contra = TypeVar("TIn_contra", contravariant=True)
 TOut_co = TypeVar("TOut_co", covariant=True)
 
 
-class Chain(ABC, Generic[TIn_contra, TOut_co], Callable[[TIn_contra], TOut_co]):
+class Chain(ABC, Generic[TIn_contra, TOut_co]):
     """Base Chain abstract class.
 
     Adapted from langchain's Chain base class, but simplified to only expose the _call

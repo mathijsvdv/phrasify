@@ -46,6 +46,7 @@ dependencies = [
 ]
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
+# test-cov = "pytest {args:tests} --doctest-modules --junitxml=junit/test-results.xml --cov-report=xml --cov-report=html"
 test-cov = "coverage run -m pytest {args:tests}"
 cov-report = [
   "- coverage combine",
@@ -55,9 +56,15 @@ cov-html = [
   "- coverage combine",
   "coverage html",
 ]
+cov-xml = [
+  "- coverage combine",
+  "coverage xml coverage.xml",
+]
 cov = [
   "test-cov",
   "cov-report",
+  "cov-html",
+  "cov-xml",
 ]
 
 [[tool.hatch.envs.all.matrix]]
