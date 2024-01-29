@@ -1,7 +1,9 @@
 import os
 
-import openai
+
+def get_openai_api_key():
+    """Get the OpenAI API key from the environment."""
+    return os.getenv("OPENAI_API_KEY")
 
 
-def init_openai():
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
