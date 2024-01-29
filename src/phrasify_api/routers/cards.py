@@ -2,14 +2,14 @@ from fastapi import APIRouter
 from fastapi_versionizer import api_version
 from pydantic import BaseModel, Field
 
-from anki_convo.card import TranslationCard as TranslationCardDataclass
-from anki_convo.card_gen import LLMTranslationCardGenerator
-from anki_convo.constants import (
+from phrasify.card import TranslationCard as TranslationCardDataclass
+from phrasify.card_gen import LLMTranslationCardGenerator
+from phrasify.constants import (
     DEFAULT_N_CARDS,
     DEFAULT_SOURCE_LANGUAGE,
     DEFAULT_TARGET_LANGUAGE,
 )
-from anki_convo.factory import get_llm_name, get_prompt_name
+from phrasify.factory import get_llm_name, get_prompt_name
 
 router = APIRouter()
 

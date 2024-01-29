@@ -1,20 +1,20 @@
 [run]
 source_pkgs =
-    anki_convo
+    phrasify
     tests
 branch = true
 parallel = true
 omit =
-    src/anki_convo/__about__.py
+    src/phrasify/__about__.py
     tests/mocks.py
 
 [paths]
-anki_convo =
-    src/anki_convo
-    */anki-convo/src/anki_convo
+phrasify =
+    src/phrasify
+    */phrasify/src/phrasify
 tests =
     tests
-    */anki-convo/tests
+    */phrasify/tests
 
 [report]
 exclude_lines =

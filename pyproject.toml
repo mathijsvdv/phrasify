@@ -3,7 +3,7 @@ requires = ["hatchling", "hatch-requirements-txt"]
 build-backend = "hatchling.build"
 
 [project]
-name = "anki-convo"
+name = "phrasify"
 dynamic = ["version", "dependencies", "optional-dependencies"]
 description = 'Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into fresh sentences on the fly and have conversations using your vocabulary.'
 readme = "README.md"
@@ -25,12 +25,12 @@ classifiers = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/unknown/anki-convo#readme"
-Issues = "https://github.com/unknown/anki-convo/issues"
-Source = "https://github.com/unknown/anki-convo"
+Documentation = "https://github.com/mathijsvdv/phrasify#readme"
+Issues = "https://github.com/mathijsvdv/phrasify/issues"
+Source = "https://github.com/mathijsvdv/phrasify"
 
 [tool.hatch.version]
-path = "src/anki_convo/__about__.py"
+path = "src/phrasify/__about__.py"
 
 [tool.hatch.metadata.hooks.requirements_txt]
 files = ["requirements.txt"]
@@ -67,7 +67,7 @@ dependencies = [
   "ruff>=0.0.243",
 ]
 [tool.hatch.envs.lint.scripts]
-typing = "mypy --install-types --non-interactive {args:src/anki_convo tests}"
+typing = "mypy --install-types --non-interactive {args:src/phrasify tests}"
 style = [
   "ruff {args:.}",
   "black --check --diff {args:.}",
@@ -141,7 +141,7 @@ unfixable = [
 ]
 
 [tool.ruff.isort]
-known-first-party = ["anki_convo"]
+known-first-party = ["phrasify"]
 
 [tool.ruff.flake8-tidy-imports]
 ban-relative-imports = "all"

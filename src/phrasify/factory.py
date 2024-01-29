@@ -69,7 +69,7 @@ def get_api_url(api_location: Optional[str] = None):
         return "http://localhost:8800/v1/cards"
 
     if api_location == "remote":
-        return "https://anki-convo.mvdvlies.com/api/v1/cards"
+        return "https://phrasify.mvdvlies.com/api/v1/cards"
 
     message = f"Invalid API location: {api_location!r}"
     raise ValueError(message)

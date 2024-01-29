@@ -1,8 +1,8 @@
 import pytest
 
-from anki_convo.error import LLMError
-from anki_convo.llms.openai import OpenAI
-from anki_convo.openai import OPENAI_CHAT_COMPLETIONS_URL
+from phrasify.error import LLMError
+from phrasify.llms.openai import OpenAI
+from phrasify.openai import OPENAI_CHAT_COMPLETIONS_URL
 
 from .mocks import MockResponse
 

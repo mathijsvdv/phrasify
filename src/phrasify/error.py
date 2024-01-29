@@ -1,4 +1,4 @@
-class AnkiConvoError(Exception):
+class PhrasifyError(Exception):
     """Base class for exceptions in this module."""
 
     def __init__(self, message=None):
@@ -13,25 +13,25 @@ class AnkiConvoError(Exception):
         return self._message
 
 
-class LLMError(AnkiConvoError):
+class LLMError(PhrasifyError):
     """Exceptions raised by LLMs."""
 
     pass
 
 
-class LLMParsingError(AnkiConvoError):
+class LLMParsingError(PhrasifyError):
     """Exceptions raised while parsing LLM output."""
 
     pass
 
 
-class ChainError(AnkiConvoError):
+class ChainError(PhrasifyError):
     """Exceptions raised by Chains."""
 
     pass
 
 
-class CardGenerationError(AnkiConvoError):
+class CardGenerationError(PhrasifyError):
     """Exceptions raised while generating cards."""
 
     pass

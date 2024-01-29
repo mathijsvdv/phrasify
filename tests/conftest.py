@@ -3,8 +3,8 @@ from typing import List
 
 import pytest
 
-from anki_convo.card import TranslationCard
-from anki_convo.card_gen import LLMTranslationCardGenerator
+from phrasify.card import TranslationCard
+from phrasify.card_gen import LLMTranslationCardGenerator
 from tests.mocks import Always, identity
 
 
