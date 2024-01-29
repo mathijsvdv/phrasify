@@ -4,4 +4,3 @@ python-dotenv
 fastapi
 fastapi-versionizer
 uvicorn
-pyaml

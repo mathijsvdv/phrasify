@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent
-LOGGING_CONFIG_PATH = ROOT_DIR / "logging_config.yaml"
+LOGGING_CONFIG_PATH = ROOT_DIR / "logging_config.json"
 LIB_DIR = ROOT_DIR / "lib"
 USER_FILES_DIR = ROOT_DIR / "user_files"
 DOTENV_PATH = USER_FILES_DIR / ".env"

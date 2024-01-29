@@ -5,7 +5,7 @@ IMAGE := anki-convo
 WIN_APPDATA := $(shell wslpath "$$(wslvar APPDATA)")
 ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/9999999999
 SITE_PACKAGES_PATH := ./.direnv/anki-convo/lib/python3.9/site-packages
-REQUIREMENTS := yaml charset_normalizer dotenv
+REQUIREMENTS := charset_normalizer dotenv
 K8S_ENV?=dev
 
 ankisync:

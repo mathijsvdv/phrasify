@@ -1,8 +1,7 @@
+import json
 import logging
 import logging.config
 from typing import Optional
-
-import yaml
 
 from .__about__ import NAME
 from .constants import LOGGING_CONFIG_PATH
@@ -10,7 +9,7 @@ from .constants import LOGGING_CONFIG_PATH
 
 def setup_logging():
     with open(LOGGING_CONFIG_PATH) as f:
-        config = yaml.safe_load(f)
+        config = json.load(f)
 
     logging.config.dictConfig(config)
 
