@@ -1,10 +1,26 @@
 from functools import lru_cache
 from typing import Callable, Mapping, TypeVar
 
+import requests
+
 from anki_convo.card import TranslationCard
 from anki_convo.card_gen import CardGeneratorConfig
 
 T_co = TypeVar("T_co", covariant=True)
+
+
+class MockResponse:
+    def __init__(self, json, status_code=200):
+        self._json = json
+        self.status_code = status_code
+
+    def json(self):
+        return self._json
+
+    def raise_for_status(self):
+        if self.status_code != 200:
+            message = f"Mock error: {self.status_code}"
+            raise requests.HTTPError(message)
 
 
 class CountingCardGenerator:
