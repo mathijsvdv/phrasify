@@ -4,14 +4,14 @@ from typing import Mapping
 
 import pytest
 
-from anki_convo.card import TranslationCard
-from anki_convo.card_gen import (
+from phrasify.card import TranslationCard
+from phrasify.card_gen import (
     CardGeneratorConfig,
     CardGeneratorFactory,
     cached2_card_generator_factory,
 )
-from anki_convo.error import CardGenerationError
-from anki_convo.hooks.llm_filter import (
+from phrasify.error import CardGenerationError
+from phrasify.hooks.llm_filter import (
     HasNote,
     LanguageFieldNames,
     LLMFilter,

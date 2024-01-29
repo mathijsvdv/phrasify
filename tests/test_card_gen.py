@@ -1,7 +1,7 @@
 import pytest
 
-from anki_convo.card import TranslationCard
-from anki_convo.error import CardGenerationError, ChainError
+from phrasify.card import TranslationCard
+from phrasify.error import CardGenerationError, ChainError
 
 
 def test_llm_translation_card_generator(

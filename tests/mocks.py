@@ -3,8 +3,8 @@ from typing import Callable, Mapping, TypeVar
 
 import requests
 
-from anki_convo.card import TranslationCard
-from anki_convo.card_gen import CardGeneratorConfig
+from phrasify.card import TranslationCard
+from phrasify.card_gen import CardGeneratorConfig
 
 T_co = TypeVar("T_co", covariant=True)
 

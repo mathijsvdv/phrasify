@@ -2,23 +2,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: anki-convo-deployment
-  namespace: anki-convo
+  name: phrasify-deployment
+  namespace: phrasify
   labels:
-    app: anki-convo
+    app: phrasify
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: anki-convo
+      app: phrasify
   template:
     metadata:
       labels:
-        app: anki-convo
+        app: phrasify
     spec:
       containers:
-      - name: anki-convo
-        image: mathijsvdv/anki-convo
+      - name: phrasify
+        image: mathijsvdv/phrasify
         ports:
         - containerPort: 8800
         resources:
@@ -32,17 +32,17 @@ spec:
         - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
-              name: anki-convo-secret
+              name: phrasify-secret
               key: OPENAI_API_KEY
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: anki-convo-service
-  namespace: anki-convo
+  name: phrasify-service
+  namespace: phrasify
 spec:
   selector:
-    app: anki-convo
+    app: phrasify
   ports:
   - protocol: TCP
     port: 8800

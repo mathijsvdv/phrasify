@@ -26,5 +26,5 @@ def init_addon():  # pragma: no cover
 
 
 init_package()
-if os.getenv("INIT_ANKI_CONVO_ADDON", "true").lower() == "true":  # pragma: no cover
+if os.getenv("INIT_PHRASIFY_ADDON", "true").lower() == "true":  # pragma: no cover
     init_addon()
