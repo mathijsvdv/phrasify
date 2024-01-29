@@ -7,7 +7,6 @@ from .__about__ import NAME, __version__  # noqa: F401
 import os
 
 from .env import load_env
-from .openai import init_openai
 from .hooks import init_hooks
 from .logging import setup_logging, get_logger
 
@@ -19,7 +18,6 @@ logger = get_logger(__name__)
 def init_package():
     logger.info("Initializing package")
     load_env()
-    init_openai()
 
 
 def init_addon():  # pragma: no cover

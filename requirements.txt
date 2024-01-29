@@ -1,6 +1,5 @@
 anki
 aqt[qt6]
-openai<1.0
 python-dotenv
 fastapi
 fastapi-versionizer
