@@ -44,8 +44,15 @@ deploy:
 	kubectl apply -f ./k8s/envs/$(K8S_ENV)/
 	kubectl apply -f ./k8s/apps/phrasify.yaml
 
+deploy_ollama:
+	kubectl apply -f ./k8s/namespaces.yaml
+	kubectl apply -f ./k8s/apps/ollama.yaml
+
 undeploy:
 	kubectl delete -f ./k8s/apps/phrasify.yaml
+
+undeploy_ollama:
+	kubectl delete -f ./k8s/apps/ollama.yaml
 
 health_local:
 	curl -X GET "http://localhost:$(CHAIN_API_PORT)/health"
