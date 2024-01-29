@@ -22,6 +22,10 @@ class Ollama(LLM):
         data = {"prompt": prompt, "model": self.model, "stream": False}
 
         response = requests.post(self.endpoint, json=data, timeout=30)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            self._raise(e)
+
         response_str = response.json()["response"]
         return response_str
