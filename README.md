@@ -1,5 +1,7 @@
 # AnkiConvo
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mathijsvdv/anki-convo/main.svg)](https://results.pre-commit.ci/latest/github/mathijsvdv/anki-convo/main)
+| | |
+|--- | --- |
+| Testing | [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mathijsvdv/anki-convo/main.svg)](https://results.pre-commit.ci/latest/github/mathijsvdv/anki-convo/main) [![Coverage](https://codecov.io/gh/mathijsvdv/anki-convo/graph/badge.svg?token=PISQ2ZER6N)](https://codecov.io/gh/mathijsvdv/anki-convo) |
 
 Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into fresh sentences on the fly and have conversations using your vocabulary.
 
