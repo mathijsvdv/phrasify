@@ -3,8 +3,10 @@ WORKDIR /app
 COPY src ./src
 COPY pyproject.toml .
 COPY requirements.txt .
+COPY requirements-anki.txt .
 COPY README.md .
 
+RUN pip install fastapi fastapi-versionizer uvicorn
 RUN pip install .
 
 EXPOSE 8800

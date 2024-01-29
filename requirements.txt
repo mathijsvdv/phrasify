@@ -1,6 +1,2 @@
-anki
-aqt[qt6]
-python-dotenv
-fastapi
-fastapi-versionizer
-uvicorn
+requests>=2.31.0
+python-dotenv>=1.0.0
