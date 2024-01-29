@@ -11,14 +11,14 @@ from phrasify.card_gen import (
     cached2_card_generator_factory,
 )
 from phrasify.error import CardGenerationError
-from phrasify.hooks.llm_filter import (
+from phrasify.hooks.phrasify_filter import (
     HasNote,
     LanguageFieldNames,
-    LLMFilter,
-    LLMFilterConfig,
+    PhrasifyFilter,
+    PhrasifyFilterConfig,
     invalid_name,
-    llm_filter,
-    parse_llm_filter_name,
+    parse_phrasify_filter_name,
+    phrasify_filter,
 )
 from tests.mocks import (
     CountingCardGenerator,
@@ -29,13 +29,13 @@ from tests.mocks import (
 )
 
 
-def test_parse_llm_filter_name_valid():
+def test_parse_phrasify_filter_name_valid():
     filter_name = (
-        "llm vocab-to-sentence source_lang=English target_lang=Ukrainian "
+        "phrasify vocab-to-sentence source_lang=English target_lang=Ukrainian "
         "source_field=Front target_field=Back"
     )
-    result = parse_llm_filter_name(filter_name)
-    expected = LLMFilterConfig(
+    result = parse_phrasify_filter_name(filter_name)
+    expected = PhrasifyFilterConfig(
         card_generator=CardGeneratorConfig(
             prompt_name="vocab-to-sentence",
             source_language="English",
@@ -47,10 +47,10 @@ def test_parse_llm_filter_name_valid():
     assert result == expected
 
 
-def test_parse_llm_filter_name_invalid():
+def test_parse_phrasify_filter_name_invalid():
     filter_name = "invalid_filter_name"
     with pytest.raises(ValueError):
-        parse_llm_filter_name(filter_name)
+        parse_phrasify_filter_name(filter_name)
 
 
 @pytest.fixture()
@@ -84,8 +84,8 @@ def language_field_names(request):
 
 
 @pytest.fixture()
-def llm_filt(counting_card_generator, language_field_names) -> LLMFilter:
-    filt = LLMFilter(
+def phrasify_filt(counting_card_generator, language_field_names) -> PhrasifyFilter:
+    filt = PhrasifyFilter(
         card_generator=lru_cache(maxsize=None)(counting_card_generator),
         language_field_names=language_field_names,
     )
@@ -93,8 +93,10 @@ def llm_filt(counting_card_generator, language_field_names) -> LLMFilter:
 
 
 @pytest.fixture()
-def llm_filt_empty_card(empty_card_generator, language_field_names) -> LLMFilter:
-    filt = LLMFilter(
+def phrasify_filt_empty_card(
+    empty_card_generator, language_field_names
+) -> PhrasifyFilter:
+    filt = PhrasifyFilter(
         card_generator=lru_cache(maxsize=None)(empty_card_generator),
         language_field_names=language_field_names,
     )
@@ -102,8 +104,8 @@ def llm_filt_empty_card(empty_card_generator, language_field_names) -> LLMFilter
 
 
 @pytest.fixture()
-def llm_filt_error(error_card_generator, language_field_names) -> LLMFilter:
-    filt = LLMFilter(
+def phrasify_filt_error(error_card_generator, language_field_names) -> PhrasifyFilter:
+    filt = PhrasifyFilter(
         card_generator=lru_cache(maxsize=None)(error_card_generator),
         language_field_names=language_field_names,
     )
@@ -144,23 +146,27 @@ def example_context() -> MockTemplateRenderContext:
     return MockTemplateRenderContext(note={"Front": "(Front)", "Back": "(Back)"})
 
 
-def test_llm_filter(llm_filt: LLMFilter, context: HasNote):
-    """Test that the LLMFilter returns the expected card.
+def test_phrasify_filter(phrasify_filt: PhrasifyFilter, context: HasNote):
+    """Test that the PhrasifyFilter returns the expected card.
 
-    We call the llm_filter multiple times (for both the 'Front' and 'Back' field)
+    We call the phrasify_filter multiple times (for both the 'Front' and 'Back' field)
     to test that the LRU cache works and the card generator is only called once.
     """
     note = context.note()
-    source_field_name = llm_filt.language_field_names.source
-    target_field_name = llm_filt.language_field_names.target
+    source_field_name = phrasify_filt.language_field_names.source
+    target_field_name = phrasify_filt.language_field_names.target
 
-    field_name = llm_filt.language_field_names.source
+    field_name = phrasify_filt.language_field_names.source
     field_text = note[field_name]
-    source = llm_filt(field_text=field_text, field_name=field_name, context=context)
+    source = phrasify_filt(
+        field_text=field_text, field_name=field_name, context=context
+    )
 
-    field_name = llm_filt.language_field_names.target
+    field_name = phrasify_filt.language_field_names.target
     field_text = note[field_name]
-    target = llm_filt(field_text=field_text, field_name=field_name, context=context)
+    target = phrasify_filt(
+        field_text=field_text, field_name=field_name, context=context
+    )
 
     actual_card = TranslationCard(source=source, target=target)
 
@@ -176,20 +182,20 @@ def test_llm_filter(llm_filt: LLMFilter, context: HasNote):
 
 
 @pytest.mark.parametrize("source_target", ["source", "target"])
-def test_llm_filter_example_text(
-    llm_filt: LLMFilter, source_target: str, example_context: HasNote
+def test_phrasify_filter_example_text(
+    phrasify_filt: PhrasifyFilter, source_target: str, example_context: HasNote
 ):
-    """Test that the LLMFilter returns the expected example text when the field text
-    is just the field name in parentheses.
+    """Test that the PhrasifyFilter returns the expected example text when the field
+    text is just the field name in parentheses.
 
     This occurs when a Card Type is being previewed
     in Tools -> Manage Note Types -> Cards.
     """
-    field_name = getattr(llm_filt.language_field_names, source_target)
+    field_name = getattr(phrasify_filt.language_field_names, source_target)
     field_text = f"({field_name})"
-    expected = f"(llm filter applied to '{field_name}' field)"
+    expected = f"(phrasify filter applied to '{field_name}' field)"
 
-    result = llm_filt(
+    result = phrasify_filt(
         field_text=field_text, field_name=field_name, context=example_context
     )
 
@@ -197,14 +203,14 @@ def test_llm_filter_example_text(
 
 
 @pytest.mark.parametrize("source_target", ["source", "target"])
-def test_llm_filter_card_generation_error(
-    llm_filt_error: LLMFilter, context: HasNote, source_target: str
+def test_phrasify_filter_card_generation_error(
+    phrasify_filt_error: PhrasifyFilter, context: HasNote, source_target: str
 ):
-    """Test that the LLMFilter returns the original field text when the card generator
-    raises a CardGenerationError.
+    """Test that the PhrasifyFilter returns the original field text when the card
+    generator raises a CardGenerationError.
     """
     note = context.note()
-    filt = llm_filt_error
+    filt = phrasify_filt_error
     field_name = getattr(filt.language_field_names, source_target)
     field_text = note[field_name]
     expected = field_text
@@ -216,12 +222,14 @@ def test_llm_filter_card_generation_error(
 
 @pytest.mark.parametrize("source_target", ["source", "target"])
 @pytest.mark.parametrize("n_cards", [0])
-def test_llm_filter_no_cards(llm_filt: LLMFilter, context: HasNote, source_target: str):
-    """Test that the LLMFilter returns the original field text when the card generator
-    returns no cards.
+def test_phrasify_filter_no_cards(
+    phrasify_filt: PhrasifyFilter, context: HasNote, source_target: str
+):
+    """Test that the PhrasifyFilter returns the original field text when the card
+    generator returns no cards.
     """
     note = context.note()
-    filt = llm_filt
+    filt = phrasify_filt
     field_name = getattr(filt.language_field_names, source_target)
     field_text = note[field_name]
     expected = field_text
@@ -232,14 +240,14 @@ def test_llm_filter_no_cards(llm_filt: LLMFilter, context: HasNote, source_targe
 
 
 @pytest.mark.parametrize("source_target", ["source", "target"])
-def test_llm_filter_empty_field_text(
-    llm_filt_empty_card: LLMFilter, context: HasNote, source_target: str
+def test_phrasify_filter_empty_field_text(
+    phrasify_filt_empty_card: PhrasifyFilter, context: HasNote, source_target: str
 ):
-    """Test that the LLMFilter returns the original field text when the new field text
-    is empty (and the original field text is not).
+    """Test that the PhrasifyFilter returns the original field text when the new field
+    text is empty (and the original field text is not).
     """
     note = context.note()
-    filt = llm_filt_empty_card
+    filt = phrasify_filt_empty_card
     field_name = getattr(filt.language_field_names, source_target)
     field_text = note[field_name]
     expected = field_text
@@ -249,19 +257,19 @@ def test_llm_filter_empty_field_text(
     assert result == expected
 
 
-def test_llm_filter_empty_field_text_both(
-    llm_filt_empty_card: LLMFilter, context_empty_card: HasNote
+def test_phrasify_filter_empty_field_text_both(
+    phrasify_filt_empty_card: PhrasifyFilter, context_empty_card: HasNote
 ):
-    """Test that the LLMFilter returns a recommendation to fill both the source and
+    """Test that the PhrasifyFilter returns a recommendation to fill both the source and
     target fields when the new field text is empty and the original field text is also
     empty.
     """
-    filt = llm_filt_empty_card
+    filt = phrasify_filt_empty_card
     context = context_empty_card
     field_name = filt.language_field_names.source
     field_text = ""
     expected = (
-        "(llm filter was applied to an empty field. The LLM will be more "
+        "(phrasify filter was applied to an empty field. The LLM will be more "
         "effective at generating cards if both "
         f"the '{filt.language_field_names.source}' field and "
         f"the '{filt.language_field_names.target}' field are filled with "
@@ -282,7 +290,7 @@ def test_invalid_name():
     assert result == expected
 
 
-# TODO The LLMFilter should produce the same card, given:
+# TODO The PhrasifyFilter should produce the same card, given:
 #      - the same card generator and the same card
 #      - the same context
 #      This means:
@@ -359,7 +367,7 @@ def test_cached2_card_generator_factory():
     assert all_unique([id(cg) for cg in card_generators])
 
 
-def _test_llm_filter_hook(
+def _test_phrasify_filter_hook(
     note: Mapping[str, str],
     filter_name: str,
     context: HasNote,
@@ -367,13 +375,13 @@ def _test_llm_filter_hook(
     field_name: str,
     expected: str,
 ):
-    """Test that the LLMFilter returns the expected field text (depending on the
+    """Test that the PhrasifyFilter returns the expected field text (depending on the
     field)"""
     field_text = note[field_name]
     input_card = TranslationCard(source=note["Front"], target=note["Back"])
     expected = expected.format(input_card=input_card)
 
-    actual = llm_filter(
+    actual = phrasify_filter(
         field_text=field_text,
         field_name=field_name,
         filter_name=filter_name,
@@ -383,7 +391,7 @@ def _test_llm_filter_hook(
 
     assert actual == expected
 
-    actual_context_copy = llm_filter(
+    actual_context_copy = phrasify_filter(
         field_text=field_text,
         field_name=field_name,
         filter_name=filter_name,
@@ -394,14 +402,14 @@ def _test_llm_filter_hook(
     assert actual_context_copy == expected
 
 
-def _test_llm_filter_hook_front(
+def _test_phrasify_filter_hook_front(
     note: Mapping[str, str],
     filter_name: str,
     context: HasNote,
     card_generator_factory: CardGeneratorFactory,
 ):
-    """Test that the LLMFilter returns the expected front of the card."""
-    _test_llm_filter_hook(
+    """Test that the PhrasifyFilter returns the expected front of the card."""
+    _test_phrasify_filter_hook(
         note=note,
         filter_name=filter_name,
         context=context,
@@ -411,14 +419,14 @@ def _test_llm_filter_hook_front(
     )
 
 
-def _test_llm_filter_hook_back(
+def _test_phrasify_filter_hook_back(
     note: Mapping[str, str],
     filter_name: str,
     context: HasNote,
     card_generator_factory: CardGeneratorFactory,
 ):
-    """Test that the LLMFilter returns the expected back of the card."""
-    _test_llm_filter_hook(
+    """Test that the PhrasifyFilter returns the expected back of the card."""
+    _test_phrasify_filter_hook(
         note=note,
         filter_name=filter_name,
         context=context,
@@ -428,17 +436,17 @@ def _test_llm_filter_hook_back(
     )
 
 
-def test_llm_filter_hook():
-    """Test that the LLMFilter returns the expected card."""
+def test_phrasify_filter_hook():
+    """Test that the PhrasifyFilter returns the expected card."""
     # Arrange
     card_generator_factory = create_counting_card_generator
 
     filter_name = (
-        "llm vocab-to-sentence source_lang=English target_lang=Ukrainian "
+        "phrasify vocab-to-sentence source_lang=English target_lang=Ukrainian "
         "source_field=Front target_field=Back"
     )
     filter_name_diff = (
-        "llm vocab-to-sentence source_lang=English target_lang=Spanish "
+        "phrasify vocab-to-sentence source_lang=English target_lang=Spanish "
         "source_field=Front target_field=Back"
     )
 
@@ -454,16 +462,16 @@ def test_llm_filter_hook():
     ]
 
     for nt, filtn, ctx in nt_filtn_ctxs:
-        _test_llm_filter_hook_front(nt, filtn, ctx, card_generator_factory)
-        _test_llm_filter_hook_back(nt, filtn, ctx, card_generator_factory)
+        _test_phrasify_filter_hook_front(nt, filtn, ctx, card_generator_factory)
+        _test_phrasify_filter_hook_back(nt, filtn, ctx, card_generator_factory)
 
 
-def test_llm_filter_hook_does_not_start_with_llm(context: HasNote):
-    """Test that the LLMFilter returns the original field text when the field text
-    does not start with "(llm".
+def test_phrasify_filter_hook_does_not_start_with_llm(context: HasNote):
+    """Test that the PhrasifyFilter returns the original field text when the field text
+    does not start with "phrasify".
     """
-    filter_name = "not llm"
-    actual = llm_filter(
+    filter_name = "not phrasify"
+    actual = phrasify_filter(
         field_text="friend",
         field_name="Front",
         filter_name=filter_name,
@@ -474,12 +482,12 @@ def test_llm_filter_hook_does_not_start_with_llm(context: HasNote):
     assert actual == expected
 
 
-def test_llm_filter_hook_invalid_filter_name(context: HasNote):
-    """Test that the LLMFilter returns the original field text when the filter name
+def test_phrasify_filter_hook_invalid_filter_name(context: HasNote):
+    """Test that the PhrasifyFilter returns the original field text when the filter name
     is invalid.
     """
-    filter_name = "llm invalid_filter_name"
-    actual = llm_filter(
+    filter_name = "phrasify invalid_filter_name"
+    actual = phrasify_filter(
         field_text="friend",
         field_name="Front",
         filter_name=filter_name,
