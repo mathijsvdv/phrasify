@@ -8,7 +8,7 @@ dynamic = ["version", "dependencies", "optional-dependencies"]
 description = 'Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into fresh sentences on the fly and have conversations using your vocabulary.'
 readme = "README.md"
 requires-python = ">=3.7"
-license = "GPL-3.0-or-later"
+license = "MIT"
 keywords = []
 authors = [
   { name = "Mathijs van der Vlies", email = "mathijsvdvlies@solcon.nl" },
