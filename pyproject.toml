@@ -41,8 +41,8 @@ anki = ["requirements-anki.txt"]
 
 [tool.hatch.envs.default]
 dependencies = [
-  "coverage[toml]>=6.5",
   "pytest",
+  "pytest-cov",
   "pytest-mock",
   "ipykernel",
   "nbstripout",
@@ -52,25 +52,9 @@ dependencies = [
 ]
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
-# test-cov = "pytest {args:tests} --doctest-modules --junitxml=junit/test-results.xml --cov-report=xml --cov-report=html"
-test-cov = "coverage run -m pytest {args:tests}"
-cov-report = [
-  "- coverage combine",
-  "coverage report -m",
-]
-cov-html = [
-  "- coverage combine",
-  "coverage html",
-]
-cov-xml = [
-  "- coverage combine",
-  "coverage xml coverage.xml",
-]
+test-cov = "pytest {args:tests} --cov --junitxml=junit/test-results.xml --cov-report term-missing --cov-report=xml --cov-report=html"
 cov = [
-  "test-cov",
-  "cov-report",
-  "cov-html",
-  "cov-xml",
+  "test-cov"
 ]
 
 [[tool.hatch.envs.all.matrix]]
@@ -166,24 +150,3 @@ ban-relative-imports = "all"
 [tool.ruff.per-file-ignores]
 # Tests can use magic values, assertions, and relative imports
 "tests/**/*" = ["PLR2004", "S101", "TID252"]
-
-[tool.coverage.run]
-source_pkgs = ["anki_convo", "tests"]
-branch = true
-parallel = true
-omit = [
-  "src/anki_convo/__about__.py",
-  "tests/mocks.py",
-]
-
-[tool.coverage.paths]
-anki_convo = ["src/anki_convo", "*/anki-convo/src/anki_convo"]
-tests = ["tests", "*/anki-convo/tests"]
-
-[tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-  "def _[a-zA-Z0-9]",
-]

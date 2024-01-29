@@ -1,0 +1,25 @@
+[run]
+source_pkgs =
+    anki_convo
+    tests
+branch = true
+parallel = true
+omit =
+    src/anki_convo/__about__.py
+    tests/mocks.py
+
+[paths]
+anki_convo =
+    src/anki_convo
+    */anki-convo/src/anki_convo
+tests =
+    tests
+    */anki-convo/tests
+
+[report]
+exclude_lines =
+  pragma: no cover
+  no cov
+  if __name__ == .__main__.:
+  if TYPE_CHECKING:
+  def _[a-zA-Z0-9]
