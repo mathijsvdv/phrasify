@@ -1,0 +1,51 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phrasify-deployment
+  namespace: phrasify
+  labels:
+    app: phrasify
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: phrasify
+  template:
+    metadata:
+      labels:
+        app: phrasify
+    spec:
+      containers:
+      - name: phrasify
+        image: mathijsvdv/phrasify
+        ports:
+        - containerPort: 8800
+        resources:
+          requests:
+            cpu: 500m
+            memory: 500Mi
+          limits:
+            cpu: 500m
+            memory: 500Mi
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: phrasify-secret
+              key: OPENAI_API_KEY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: phrasify-service
+  namespace: phrasify
+spec:
+  selector:
+    app: phrasify
+  ports:
+  - protocol: TCP
+    port: 8800
+    targetPort: 8800
+    nodePort: 30800
+  type: LoadBalancer

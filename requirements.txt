@@ -1,8 +1,2 @@
-anki
-aqt[qt6]
-langchain
-langserve[all]
-openai
-python-dotenv
-fastapi
-uvicorn
+requests>=2.31.0
+python-dotenv>=1.0.0
