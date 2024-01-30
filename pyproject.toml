@@ -45,6 +45,8 @@ dependencies = [
   "pytest-mock",
   "ipykernel",
   "nbstripout",
+  "anki>=2.1.66",
+  "aqt[qt6]>=2.1.66",
   "fastapi",
   "fastapi-versionizer",
   "uvicorn",
