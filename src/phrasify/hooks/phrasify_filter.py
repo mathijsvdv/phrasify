@@ -212,6 +212,7 @@ def phrasify_filter(
     -----
     If the LLM fails to generate a card, the field text is returned unchanged.
     """  # noqa: E501, RUF002
+    logger.debug("phrasify_filter called")
     if not filter_name.startswith("phrasify"):
         # not our filter, return string unchanged
         return field_text
