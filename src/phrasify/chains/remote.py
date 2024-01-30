@@ -25,7 +25,11 @@ class RemoteChain(Chain[Dict[str, Any], Union[str, Dict[str, Any]]]):
         self, x: Any, **kwargs: Any  # noqa: ARG002
     ) -> Union[str, Dict[str, Any]]:
         """Run the chain on the given input `x`."""
-        response = requests.post(self.invoke_url, json={"input": x}, timeout=30)
+        try:
+            response = requests.post(self.invoke_url, json={"input": x}, timeout=30)
+        except requests.ReadTimeout as e:
+            self._raise(e)
+
         try:
             response.raise_for_status()
         except requests.HTTPError as e:

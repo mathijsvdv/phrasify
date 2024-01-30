@@ -3,14 +3,23 @@
 These functions are used to parse user input.
 """
 
+import re
 from functools import lru_cache
 from typing import Optional
 
 from .config import config
 from .constants import PROMPT_DIR
+from .llms.ollama import Ollama
 from .llms.openai import OpenAI
 
-__all__ = ["get_llm", "get_prompt"]
+__all__ = [
+    "get_llm",
+    "get_prompt",
+    "get_llm_name",
+    "get_prompt_name",
+    "get_api_url",
+    "get_api_location",
+]
 
 
 def get_llm_name(llm_name: Optional[str] = None):
@@ -27,6 +36,10 @@ def get_llm(llm_name: Optional[str] = None):
 
     if llm_name.startswith("gpt-"):
         return OpenAI(llm_name)
+    elif llm_name.startswith("ollama-"):
+        ollama_re = re.compile(r"ollama-(?P<ollama_name>.*)")
+        ollama_name = ollama_re.match(llm_name).group("ollama_name")
+        return Ollama(ollama_name)
     else:
         msg = f"Invalid LLM name: {llm_name}"
         raise ValueError(msg)

@@ -2,7 +2,7 @@ import json
 import re
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 import requests
 
@@ -17,6 +17,68 @@ logger = get_logger(__name__)
 
 
 CardGenerator = Callable[[TranslationCard], List[TranslationCard]]
+
+
+def _find_json_in_response(response: str) -> str:
+    """Find the JSON in the response from an LLM."""
+    open_brackets = "{["
+    close_brackets = "}]"
+    bracket_stack = []
+    for i, char in enumerate(response):
+        if char in open_brackets:
+            i_start = i
+            break
+    else:
+        message = f"No open bracket found in response: {response}"
+        raise LLMParsingError(message)
+
+    for i, char in enumerate(response[i_start:], start=i_start):
+        if char in open_brackets:
+            bracket_stack.append(char)
+        elif char in close_brackets:
+            error_message = f"Unmatched close bracket at index {i}"
+            if len(bracket_stack) == 0:
+                raise LLMParsingError(error_message)
+            elif bracket_stack[-1] == open_brackets[close_brackets.index(char)]:
+                bracket_stack.pop()
+            else:
+                raise LLMParsingError(error_message)
+
+        if len(bracket_stack) == 0:
+            i_end = i
+            break
+
+    if len(bracket_stack) > 0:
+        error_message = f"Unmatched open bracket {bracket_stack[-1]}"
+        raise LLMParsingError(error_message)
+
+    return response[i_start : i_end + 1]
+
+
+def _resolve_card_dicts(card_dicts: Union[List, Dict]):
+    """Resolve parsed JSON into a list of card dicts."""
+
+    if isinstance(card_dicts, dict):
+        if "cards" in card_dicts:
+            # The list of cards is nested under the key "cards"
+            card_dicts = card_dicts["cards"]
+        elif len(card_dicts) == 1:
+            # The list of cards is nested under a single key
+            card_dicts = card_dicts[next(iter(card_dicts.keys()))]
+
+    if (
+        isinstance(card_dicts, dict)
+        and "source" in card_dicts
+        and "target" in card_dicts
+    ):
+        # We have a single card
+        card_dicts = [card_dicts]
+
+    if not isinstance(card_dicts, list):
+        message = f"Expected a list of dictionaries, but got {card_dicts!r}"
+        raise LLMParsingError(message)
+
+    return card_dicts
 
 
 def _parse_translation_card_response(response: str) -> List[TranslationCard]:
@@ -41,15 +103,15 @@ def _parse_translation_card_response(response: str) -> List[TranslationCard]:
     if match:
         json_response = match.group(1)
 
+    json_response = _find_json_in_response(json_response)
+
     try:
         card_dicts = json.loads(json_response)
     except json.JSONDecodeError as e:
         message = f"Error parsing response from chain: {response}"
         raise LLMParsingError(message) from e
 
-    if not isinstance(card_dicts, list):
-        message = f"Expected a list of dictionaries, but got {card_dicts!r}"
-        raise LLMParsingError(message)
+    card_dicts = _resolve_card_dicts(card_dicts)
 
     try:
         cards = [TranslationCard(**card_dict) for card_dict in card_dicts]
@@ -86,7 +148,7 @@ class LLMTranslationCardGenerator:
             "n_cards": self.n_cards,
             "source_language": self.source_language,
             "target_language": self.target_language,
-            "card_json": card.to_json(),
+            "card": card,
         }
 
     @classmethod
@@ -118,6 +180,8 @@ class LLMTranslationCardGenerator:
         except ChainError as e:
             msg = f"Error generating card using chain inputs: {chain_inputs}"
             raise CardGenerationError(msg) from e
+
+        logger.debug(f"Response from chain: {response}")
 
         try:
             cards = _parse_translation_card_response(response)

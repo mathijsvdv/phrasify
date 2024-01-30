@@ -24,7 +24,11 @@ class OpenAI(LLM):
             "Authorization": f"Bearer {self.api_key}",
         }
 
-        response = requests.post(url, json=json, headers=headers, timeout=30)
+        try:
+            response = requests.post(url, json=json, headers=headers, timeout=30)
+        except requests.ReadTimeout as e:
+            self._raise(e)
+
         try:
             response.raise_for_status()
         except requests.HTTPError as e:

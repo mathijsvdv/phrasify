@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import partial
 from typing import List
 
 import pytest
@@ -25,6 +26,10 @@ llm_card_generation_expectations_params = {
     "empty": ("[]", []),
     "one_card": (
         '[{"source": "Hello, how are you?", "target": "Привіт, як справи?"}]',
+        [TranslationCard(source="Hello, how are you?", target="Привіт, як справи?")],
+    ),
+    "one_card_out_of_list": (
+        '{"source": "Hello, how are you?", "target": "Привіт, як справи?"}',
         [TranslationCard(source="Hello, how are you?", target="Привіт, як справи?")],
     ),
     "two_cards": (
@@ -72,8 +77,30 @@ This is the end of the cards.
 """
 
 
-@pytest.fixture(params=[identity, surround_with_json_block])
-def transform_response(request):
+def surround_with_text(s: str) -> str:
+    return f"""
+Absolutely! Here are some cards:
+
+{s}
+
+This is the end of the cards.
+"""
+
+
+def put_under_key(s: str, key: str = "cards") -> str:
+    return f'{{"{key}": {s}}}'
+
+
+@pytest.fixture(
+    params=[identity, put_under_key, partial(put_under_key, key="mycards")],
+    ids=["identity", "put_under_cards", "put_under_mycards"],
+)
+def transform_response1(request):
+    return request.param
+
+
+@pytest.fixture(params=[identity, surround_with_json_block, surround_with_text])
+def transform_response2(request):
     return request.param
 
 
@@ -81,11 +108,12 @@ def transform_response(request):
     params=llm_card_generation_expectations_params.values(),
     ids=llm_card_generation_expectations_params.keys(),
 )
-def llm_card_generation_expectation(request, transform_response):
+def llm_card_generation_expectation(request, transform_response1, transform_response2):
     """Fixture containing the response from the LLM (input for
     LLMTranslationCardGenerator) and the expected cards."""
     response, expected_cards = request.param
-    response = transform_response(response)
+    response = transform_response1(response)
+    response = transform_response2(response)
     return LLMCardGenerationExpectation(
         response=response, expected_cards=expected_cards
     )

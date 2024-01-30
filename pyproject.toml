@@ -45,16 +45,23 @@ dependencies = [
   "pytest-mock",
   "ipykernel",
   "nbstripout",
+  "anki>=2.1.66",
+  "aqt[qt6]>=2.1.66",
   "fastapi",
   "fastapi-versionizer",
   "uvicorn",
 ]
-[tool.hatch.envs.default.scripts]
-test = "pytest {args:tests}"
-test-cov = "pytest {args:tests} --cov --junitxml=junit/test-results.xml --cov-report term-missing --cov-report=xml --cov-report=html"
-cov = [
-  "test-cov"
+
+[tool.hatch.envs.test]
+dependencies = [
+  "pytest",
+  "pytest-cov",
+  "pytest-mock",
 ]
+
+[tool.hatch.envs.test.scripts]
+run = "pytest {args:tests}"
+cov = "pytest {args:tests} --cov --junitxml=junit/test-results.xml --cov-report term-missing --cov-report=xml --cov-report=html"
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.8", "3.9", "3.10", "3.11"]
