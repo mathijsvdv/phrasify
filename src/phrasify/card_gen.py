@@ -2,7 +2,7 @@ import json
 import re
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 import requests
 
@@ -55,6 +55,32 @@ def _find_json_in_response(response: str) -> str:
     return response[i_start : i_end + 1]
 
 
+def _resolve_card_dicts(card_dicts: Union[List, Dict]):
+    """Resolve parsed JSON into a list of card dicts."""
+
+    if isinstance(card_dicts, dict):
+        if "cards" in card_dicts:
+            # The list of cards is nested under the key "cards"
+            card_dicts = card_dicts["cards"]
+        elif len(card_dicts) == 1:
+            # The list of cards is nested under a single key
+            card_dicts = card_dicts[next(iter(card_dicts.keys()))]
+
+    if (
+        isinstance(card_dicts, dict)
+        and "source" in card_dicts
+        and "target" in card_dicts
+    ):
+        # We have a single card
+        card_dicts = [card_dicts]
+
+    if not isinstance(card_dicts, list):
+        message = f"Expected a list of dictionaries, but got {card_dicts!r}"
+        raise LLMParsingError(message)
+
+    return card_dicts
+
+
 def _parse_translation_card_response(response: str) -> List[TranslationCard]:
     """Parse the response from an LLM into a list of TranslationCard objects"""
     # TODO If using CSV, need to be robust to:
@@ -85,9 +111,7 @@ def _parse_translation_card_response(response: str) -> List[TranslationCard]:
         message = f"Error parsing response from chain: {response}"
         raise LLMParsingError(message) from e
 
-    if not isinstance(card_dicts, list):
-        message = f"Expected a list of dictionaries, but got {card_dicts!r}"
-        raise LLMParsingError(message)
+    card_dicts = _resolve_card_dicts(card_dicts)
 
     try:
         cards = [TranslationCard(**card_dict) for card_dict in card_dicts]

@@ -57,7 +57,6 @@ def test_llm_translation_card_generator_chain_error(
         "Unmatched open bracket {",
         "Unmatched close bracket [}]",
         "Unmatched close bracket {]}",
-        '{"cards": [{"source": "friend", "target": "друг"}]}',
         '[{"front": "friend", "back": "друг"}]',
     ],
 )
