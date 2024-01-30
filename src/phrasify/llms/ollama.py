@@ -21,7 +21,11 @@ class Ollama(LLM):
         """Run the LLM on the given prompt and input."""
         data = {"prompt": prompt, "model": self.model, "stream": False}
 
-        response = requests.post(self.endpoint, json=data, timeout=30)
+        try:
+            response = requests.post(self.endpoint, json=data, timeout=30)
+        except requests.ReadTimeout as e:
+            self._raise(e)
+
         try:
             response.raise_for_status()
         except requests.HTTPError as e:

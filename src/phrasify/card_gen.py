@@ -148,7 +148,7 @@ class LLMTranslationCardGenerator:
             "n_cards": self.n_cards,
             "source_language": self.source_language,
             "target_language": self.target_language,
-            "card_json": card.to_json(),
+            "card": card,
         }
 
     @classmethod
@@ -180,6 +180,8 @@ class LLMTranslationCardGenerator:
         except ChainError as e:
             msg = f"Error generating card using chain inputs: {chain_inputs}"
             raise CardGenerationError(msg) from e
+
+        logger.debug(f"Response from chain: {response}")
 
         try:
             cards = _parse_translation_card_response(response)

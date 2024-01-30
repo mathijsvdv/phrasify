@@ -9,7 +9,13 @@ You are going to use your skills to generate Anki cards that help memorize vocab
 I know the following source language: {source_language}, and I want to learn the following target language: {target_language}.
 
 Please generate {n_cards} card(s) from the following input card in JSON format containing just a vocabulary word or phrase:
-{card_json}
+{{"source": "{card.source}", "target": "{card.target}"}}
 
-For each card, I want you to replace the 'source' field with the {source_language} sentence and the 'target' field with the {target_language} sentence.
-You should not give any response other than the JSON (list of cards). Not a single character of text aside from JSON.
+For each card, I want you to replace the 'source' field with the {source_language} sentence and the 'target' field with the {target_language} sentence. The JSON output should look like this (depending on the number of cards `n_cards` generated):
+[
+    {{"source": "<example {source_language} sentence 1>", "target": "<example {target_language} sentence 1>"}},
+    ...
+    {{"source": "<example {source_language} sentence n_cards>", "target": "<example {target_language} sentence n_cards>"}}
+]
+
+Make sure that the JSON is valid and there are no trailing commas.
