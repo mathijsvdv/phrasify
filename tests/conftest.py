@@ -72,7 +72,17 @@ This is the end of the cards.
 """
 
 
-@pytest.fixture(params=[identity, surround_with_json_block])
+def surround_with_text(s: str) -> str:
+    return f"""
+Absolutely! Here are some cards:
+
+{s}
+
+This is the end of the cards.
+"""
+
+
+@pytest.fixture(params=[identity, surround_with_json_block, surround_with_text])
 def transform_response(request):
     return request.param
 

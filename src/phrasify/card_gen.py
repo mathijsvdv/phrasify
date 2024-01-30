@@ -19,6 +19,42 @@ logger = get_logger(__name__)
 CardGenerator = Callable[[TranslationCard], List[TranslationCard]]
 
 
+def _find_json_in_response(response: str) -> str:
+    """Find the JSON in the response from an LLM."""
+    open_brackets = "{["
+    close_brackets = "}]"
+    bracket_stack = []
+    for i, char in enumerate(response):
+        if char in open_brackets:
+            i_start = i
+            break
+    else:
+        message = f"No open bracket found in response: {response}"
+        raise LLMParsingError(message)
+
+    for i, char in enumerate(response[i_start:], start=i_start):
+        if char in open_brackets:
+            bracket_stack.append(char)
+        elif char in close_brackets:
+            error_message = f"Unmatched close bracket at index {i}"
+            if len(bracket_stack) == 0:
+                raise LLMParsingError(error_message)
+            elif bracket_stack[-1] == open_brackets[close_brackets.index(char)]:
+                bracket_stack.pop()
+            else:
+                raise LLMParsingError(error_message)
+
+        if len(bracket_stack) == 0:
+            i_end = i
+            break
+
+    if len(bracket_stack) > 0:
+        error_message = f"Unmatched open bracket {bracket_stack[-1]}"
+        raise LLMParsingError(error_message)
+
+    return response[i_start : i_end + 1]
+
+
 def _parse_translation_card_response(response: str) -> List[TranslationCard]:
     """Parse the response from an LLM into a list of TranslationCard objects"""
     # TODO If using CSV, need to be robust to:
@@ -40,6 +76,8 @@ def _parse_translation_card_response(response: str) -> List[TranslationCard]:
     match = re.search(r"(?<=```json\n)(.*)(?=\n```)", json_response, re.DOTALL)
     if match:
         json_response = match.group(1)
+
+    json_response = _find_json_in_response(json_response)
 
     try:
         card_dicts = json.loads(json_response)

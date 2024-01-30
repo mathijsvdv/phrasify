@@ -53,6 +53,10 @@ def test_llm_translation_card_generator_chain_error(
     "llm_response",
     [
         "This is not a valid JSON string",
+        "Unmatched open bracket [",
+        "Unmatched open bracket {",
+        "Unmatched close bracket [}]",
+        "Unmatched close bracket {]}",
         '{"cards": [{"source": "friend", "target": "друг"}]}',
         '[{"front": "friend", "back": "друг"}]',
     ],
