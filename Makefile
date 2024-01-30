@@ -38,6 +38,9 @@ docker_push:
 	docker build -t mathijsvdv/${IMAGE} .
 	docker push mathijsvdv/${IMAGE}
 
+docker_run_ollama:
+	docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+
 # When deploying to `minikube` be sure to run `minikube tunnel` in a separate terminal first
 deploy:
 	kubectl apply -f ./k8s/namespaces.yaml
