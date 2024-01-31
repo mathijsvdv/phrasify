@@ -45,6 +45,7 @@ docker_run_ollama:
 deploy:
 	kubectl apply -f ./k8s/namespaces.yaml
 	kubectl apply -f ./k8s/envs/$(K8S_ENV)/
+	kubectl apply -f ./k8s/apps/ollama.yaml
 	kubectl apply -f ./k8s/apps/phrasify.yaml
 
 deploy_ollama:

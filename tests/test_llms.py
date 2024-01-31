@@ -40,7 +40,7 @@ def _assert_requests_post_called_ollama(requests_post, prompt):
     requests_post.assert_called_once_with(
         "http://localhost:11434/api/generate",
         json=request_json,
-        timeout=30,
+        timeout=300,
     )
 
 
