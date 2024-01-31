@@ -1,9 +1,11 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  name: ollama
+  namespace: phrasify
   labels:
     app: ollama
-  name: ollama
+
 spec:
   accessModes:
     - ReadWriteOnce
@@ -15,6 +17,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ollama-deployment
+  namespace: phrasify
   labels:
     app: ollama
 spec:
@@ -48,9 +51,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: ollama-service
+  namespace: phrasify
   labels:
     app: ollama
-  name: ollama-service
 spec:
   selector:
     app: ollama
@@ -58,5 +62,63 @@ spec:
   - protocol: TCP
     port: 11434
     targetPort: 11434
-    nodePort: 31434
-  type: LoadBalancer
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-pull-config
+  namespace: phrasify
+data:
+  ollama-pull.sh: |
+    echo "ollama-pull.sh"
+    echo "OLLAMA_URL: $OLLAMA_URL"
+
+    # Wait until the service is up
+    while true; do
+      curl $OLLAMA_URL
+      if [ $? -eq 0 ]; then
+        break
+      fi
+      sleep 1
+    done
+
+    # Pull mistral model
+    curl $OLLAMA_URL/api/pull -d '{"name": "mistral"}'
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-pull
+  namespace: phrasify
+spec:
+  parallelism: 1
+  completions: 1
+  template:
+    metadata:
+      name: ollama-pull
+    spec:
+      volumes:
+      - name: ollama-pull-volume
+        configMap:
+          name: ollama-pull-config
+      containers:
+      - name: ollama-pull
+        image: appropriate/curl
+        volumeMounts:
+        - name: ollama-pull-volume
+          mountPath: /ollama-pull-scripts
+        env:
+        - name: OLLAMA_URL
+          value: http://$(OLLAMA_SERVICE_SERVICE_HOST):$(OLLAMA_SERVICE_SERVICE_PORT)
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "copy ollama-pull-scripts to /tmp"
+          cp /ollama-pull-scripts/* /tmp
+          echo "apply 'chmod +x' to scripts"
+          chmod +x /tmp/*.sh
+          echo "run ollama-pull.sh"
+          /tmp/ollama-pull.sh
+      restartPolicy: Never
+  backoffLimit: 4
