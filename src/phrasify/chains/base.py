@@ -56,4 +56,4 @@ class Chain(ABC, Generic[TIn_contra, TOut_co]):
         self, error: Optional[Exception] = None, message: Optional[str] = None
     ) -> ChainError:
         """Raise an Exception from the given error."""
-        raise Exception(message) from error
+        raise ChainError(message) from error
