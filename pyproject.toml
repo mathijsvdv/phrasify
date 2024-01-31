@@ -50,6 +50,7 @@ dependencies = [
   "fastapi",
   "fastapi-versionizer",
   "uvicorn",
+  "langchain",
 ]
 
 [tool.hatch.envs.test]
