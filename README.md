@@ -1,5 +1,9 @@
-# AnkiConvo
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mathijsvdv/anki-convo/main.svg)](https://results.pre-commit.ci/latest/github/mathijsvdv/anki-convo/main)
+# Phrasify
+| | |
+|--- | --- |
+| Testing | [![CI - Test](https://github.com/mathijsvdv/phrasify/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/mathijsvdv/phrasify/actions/workflows/unit-tests.yml) [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mathijsvdv/phrasify/main.svg)](https://results.pre-commit.ci/latest/github/mathijsvdv/phrasify/main) [![Coverage](https://codecov.io/gh/mathijsvdv/phrasify/graph/badge.svg?token=PISQ2ZER6N)](https://codecov.io/gh/mathijsvdv/phrasify) |
+
+
 
 Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into fresh sentences on the fly and have conversations using your vocabulary.
 
@@ -42,7 +46,7 @@ The EKS cluster is deployed with the following add-ons:
 Upon deletion of the EKS cluster, all resources created by the add-ons are automatically deleted.
 
 ## License
-`anki-convo` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+`phrasify` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
 
 ## Development
 ### Branching strategy

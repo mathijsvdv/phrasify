@@ -1,0 +1,25 @@
+[run]
+source_pkgs =
+    phrasify
+    tests
+branch = true
+parallel = true
+omit =
+    src/phrasify/__about__.py
+    tests/mocks.py
+
+[paths]
+phrasify =
+    src/phrasify
+    */phrasify/src/phrasify
+tests =
+    tests
+    */phrasify/tests
+
+[report]
+exclude_lines =
+  pragma: no cover
+  no cov
+  if __name__ == .__main__.:
+  if TYPE_CHECKING:
+  def _[a-zA-Z0-9]

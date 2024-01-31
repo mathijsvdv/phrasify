@@ -1,17 +1,17 @@
-.PHONY: ankisync init serve_chain docker_push_chain deploy undeploy health_local health_eks eksconfig
+.PHONY: ankisync init serve docker_push deploy undeploy docker_run docker_push deploy_ollama undeploy_ollama docker_run_ollama health_local health_eks eksconfig
 
 CHAIN_API_PORT := 8800
-CHAIN_IMAGE := anki-convo-chain
+IMAGE := phrasify
 WIN_APPDATA := $(shell wslpath "$$(wslvar APPDATA)")
 ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/9999999999
 SITE_PACKAGES_PATH := ./.direnv/anki-convo/lib/python3.9/site-packages
-REQUIREMENTS := yaml openai aiohttp aiosignal async_timeout charset_normalizer frozenlist multidict yarl tqdm dotenv
+REQUIREMENTS := charset_normalizer dotenv
 K8S_ENV := dev
 EKS_CLUSTER_NAME := demo
 AWS_REGION := eu-central-1
 
 ankisync:
-	rsync -avz ./src/anki_convo/ ${ANKI_ADDON_PATH}/ --delete \
+	rsync -avz ./src/phrasify/ ${ANKI_ADDON_PATH}/ --delete \
 	--cvs-exclude --exclude "__pycache__/" --exclude "*.py[cod]" --exclude "*\$py.class" \
 	--exclude ".env" --exclude ".env.*";
 	for req in ${REQUIREMENTS}; do \
@@ -19,31 +19,46 @@ ankisync:
 		--cvs-exclude --exclude "__pycache__/" --exclude "*.py[cod]" --exclude "*\$py.class" \
 		--exclude ".env" --exclude ".env.*"; \
 	done
-	cp -f ./src/anki_convo/user_files/.env.prod ${ANKI_ADDON_PATH}/user_files/.env
+	cp -f ./src/phrasify/user_files/.env.prod ${ANKI_ADDON_PATH}/user_files/.env
 
 init:
 	pre-commit install
 	pre-commit install --hook-type commit-msg
 	pre-commit autoupdate
 	hatch env create
-	hatch run python -m ipykernel install --user --name anki-convo --display-name "Python (anki-convo)"
+	hatch run python -m ipykernel install --user --name phrasify --display-name "Python (phrasify)"
 	hatch run python -m nbstripout --install --attributes .gitattributes
 
-serve_chain:
-	cd ./k8s/apps/chain &&	uvicorn app.main:app --port $(CHAIN_API_PORT) --reload
+serve:
+	uvicorn src.phrasify_api.main:app --port $(CHAIN_API_PORT) --reload
 
-docker_push_chain:
-	cd ./k8s/apps/chain && docker build -t ${CHAIN_IMAGE} .
-	docker tag ${CHAIN_IMAGE} mathijsvdv/${CHAIN_IMAGE}
-	docker push mathijsvdv/${CHAIN_IMAGE}
+docker_run:
+	docker build -t mathijsvdv/${IMAGE} .
+	docker run --name phrasify -p 8800:8800  mathijsvdv/${IMAGE}
 
+docker_push:
+	docker build -t mathijsvdv/${IMAGE} .
+	docker push mathijsvdv/${IMAGE}
+
+docker_run_ollama:
+	docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+
+# When deploying to `minikube` be sure to run `minikube tunnel` in a separate terminal first
 deploy:
 	kubectl apply -f ./k8s/namespaces.yaml
 	kubectl apply -f ./k8s/envs/$(K8S_ENV)/
-	kubectl apply -f ./k8s/apps/chain/
+	kubectl apply -f ./k8s/apps/ollama.yaml
+	kubectl apply -f ./k8s/apps/phrasify.yaml
+
+deploy_ollama:
+	kubectl apply -f ./k8s/namespaces.yaml
+	kubectl apply -f ./k8s/apps/ollama.yaml
 
 undeploy:
-	kubectl delete -f ./k8s/apps/chain/
+	kubectl delete -f ./k8s/apps/phrasify.yaml
+
+undeploy_ollama:
+	kubectl delete -f ./k8s/apps/ollama.yaml
 
 health_local:
 	curl -X GET "http://localhost:$(CHAIN_API_PORT)/health"

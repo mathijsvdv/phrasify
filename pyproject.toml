@@ -3,12 +3,12 @@ requires = ["hatchling", "hatch-requirements-txt"]
 build-backend = "hatchling.build"
 
 [project]
-name = "anki-convo"
-dynamic = ["version", "dependencies"]
+name = "phrasify"
+dynamic = ["version", "dependencies", "optional-dependencies"]
 description = 'Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into fresh sentences on the fly and have conversations using your vocabulary.'
 readme = "README.md"
-requires-python = ">=3.7"
-license = "GPL-3.0-or-later"
+requires-python = ">=3.8"
+license = "MIT"
 keywords = []
 authors = [
   { name = "Mathijs van der Vlies", email = "mathijsvdvlies@solcon.nl" },
@@ -16,7 +16,6 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
@@ -26,38 +25,47 @@ classifiers = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/unknown/anki-convo#readme"
-Issues = "https://github.com/unknown/anki-convo/issues"
-Source = "https://github.com/unknown/anki-convo"
+Documentation = "https://github.com/mathijsvdv/phrasify#readme"
+Issues = "https://github.com/mathijsvdv/phrasify/issues"
+Source = "https://github.com/mathijsvdv/phrasify"
 
 [tool.hatch.version]
-path = "src/anki_convo/__about__.py"
+path = "src/phrasify/__about__.py"
 
 [tool.hatch.metadata.hooks.requirements_txt]
 files = ["requirements.txt"]
 
+[tool.hatch.metadata.hooks.requirements_txt.optional-dependencies]
+anki = ["requirements-anki.txt"]
+
 [tool.hatch.envs.default]
 dependencies = [
-  "coverage[toml]>=6.5",
   "pytest",
+  "pytest-cov",
   "pytest-mock",
   "ipykernel",
-  "nbstripout"
-]
-[tool.hatch.envs.default.scripts]
-test = "pytest {args:tests}"
-test-cov = "coverage run -m pytest {args:tests}"
-cov-report = [
-  "- coverage combine",
-  "coverage report",
-]
-cov = [
-  "test-cov",
-  "cov-report",
+  "nbstripout",
+  "anki>=2.1.66",
+  "aqt[qt6]>=2.1.66",
+  "fastapi",
+  "fastapi-versionizer",
+  "uvicorn",
+  "langchain",
 ]
 
+[tool.hatch.envs.test]
+dependencies = [
+  "pytest",
+  "pytest-cov",
+  "pytest-mock",
+]
+
+[tool.hatch.envs.test.scripts]
+run = "pytest {args:tests}"
+cov = "pytest {args:tests} --cov --junitxml=junit/test-results.xml --cov-report term-missing --cov-report=xml --cov-report=html"
+
 [[tool.hatch.envs.all.matrix]]
-python = ["3.7", "3.8", "3.9", "3.10", "3.11"]
+python = ["3.8", "3.9", "3.10", "3.11"]
 
 [tool.hatch.envs.lint]
 detached = true
@@ -67,7 +75,7 @@ dependencies = [
   "ruff>=0.0.243",
 ]
 [tool.hatch.envs.lint.scripts]
-typing = "mypy --install-types --non-interactive {args:src/anki_convo tests}"
+typing = "mypy --install-types --non-interactive {args:src/phrasify tests}"
 style = [
   "ruff {args:.}",
   "black --check --diff {args:.}",
@@ -80,6 +88,12 @@ fmt = [
 all = [
   "style",
   "typing",
+]
+
+[tool.pytest.ini_options]
+markers = [
+  "slow: mark test as slow to run (deselect with '-m \"not slow\"')",
+  "expensive: mark test as expensive (costly) to run (deselect with '-m \"not expensive\"')",
 ]
 
 [tool.black]
@@ -135,7 +149,7 @@ unfixable = [
 ]
 
 [tool.ruff.isort]
-known-first-party = ["anki_convo"]
+known-first-party = ["phrasify"]
 
 [tool.ruff.flake8-tidy-imports]
 ban-relative-imports = "all"
@@ -143,22 +157,3 @@ ban-relative-imports = "all"
 [tool.ruff.per-file-ignores]
 # Tests can use magic values, assertions, and relative imports
 "tests/**/*" = ["PLR2004", "S101", "TID252"]
-
-[tool.coverage.run]
-source_pkgs = ["anki_convo", "tests"]
-branch = true
-parallel = true
-omit = [
-  "src/anki_convo/__about__.py",
-]
-
-[tool.coverage.paths]
-anki_convo = ["src/anki_convo", "*/anki-convo/src/anki_convo"]
-tests = ["tests", "*/anki-convo/tests"]
-
-[tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]

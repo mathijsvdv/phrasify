@@ -167,6 +167,9 @@ cython_debug/
 secrets.yaml
 !k8s/envs/example/secrets.yaml
 
+# Ignore Junit test result files
+junit/
+
 #################################
 # Terraform
 #################################
