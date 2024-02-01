@@ -1,14 +1,21 @@
 import json
 import re
+from collections import deque
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
-from typing import Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Deque, Dict, Iterable, List, Optional, Union
 
 import requests
 
 from .card import TranslationCard
 from .chains.llm import LLMChain, LLMChainInput
-from .constants import DEFAULT_N_CARDS, DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE
+from .constants import (
+    DEFAULT_MIN_CARDS,
+    DEFAULT_N_CARDS,
+    DEFAULT_SOURCE_LANGUAGE,
+    DEFAULT_TARGET_LANGUAGE,
+    GENERATED_CARDS_DIR,
+)
 from .error import CardGenerationError, ChainError, LLMParsingError
 from .factory import get_api_url, get_llm, get_llm_name, get_prompt, get_prompt_name
 from .logging import get_logger
@@ -17,6 +24,7 @@ logger = get_logger(__name__)
 
 
 CardGenerator = Callable[[TranslationCard], List[TranslationCard]]
+CardFactory = Callable[[TranslationCard], TranslationCard]
 
 
 def _find_json_in_response(response: str) -> str:
@@ -132,6 +140,13 @@ class CardGeneratorConfig:
     source_language: str = DEFAULT_SOURCE_LANGUAGE
     target_language: str = DEFAULT_TARGET_LANGUAGE
 
+    def to_path_friendly_str(self) -> str:
+        """Turn into a string that can be used in a file path."""
+        return (
+            f"{self.llm}_{self.prompt_name}_"
+            f"{self.source_language}_{self.target_language}"
+        )
+
 
 @dataclass
 class LLMTranslationCardGenerator:
@@ -233,6 +248,105 @@ class RemoteCardGenerator:
         return cards
 
 
+class TranslationCardEncoder(json.JSONEncoder):
+    """JSON encoder for TextCard objects."""
+
+    def default(self, o: Any) -> Any:
+        if isinstance(o, TranslationCard):
+            return o.to_dict()
+        return super().default(o)
+
+
+@dataclass
+class JSONCachedCardGenerator:
+    """Can be called to generate language cards. Cache the result as a JSON."""
+
+    card_generator: CardGenerator
+    min_cards: int = DEFAULT_MIN_CARDS
+    name: str = "default"
+
+    def get_cache_path(self, card: TranslationCard) -> str:
+        """Get the path to the cache file."""
+        return GENERATED_CARDS_DIR / f"{self.name}_{card.to_path_friendly_str()}.json"
+
+    def get_from_cache(self, card: TranslationCard) -> Deque[TranslationCard]:
+        """Get the cards from the cache, if they exist."""
+        cache_path = self.get_cache_path(card)
+        try:
+            with open(cache_path) as f:
+                cards = json.load(f, object_hook=TranslationCard.from_dict)
+
+        except FileNotFoundError:
+            cards = []
+
+        return deque(cards)
+
+    def write_to_cache(self, card: TranslationCard, cards: Iterable[TranslationCard]):
+        """Write the cards to the cache.
+
+        Parameters
+        ----------
+        card : TranslationCard
+            The card that was used to generate the cards.
+        cards: Iterable[TranslationCard]
+            The cards to write to the cache.
+        """
+        cache_path = self.get_cache_path(card)
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(cache_path, "w") as f:
+            json.dump(list(cards), f, cls=TranslationCardEncoder)
+
+    def __call__(self, card: TranslationCard) -> List[TranslationCard]:
+        """Generate language cards from the front text inserted into a prompt."""
+        cards = self.get_from_cache(card)
+        logger.debug(f"Retrieving {len(cards)} cards from cache for card {card}")
+
+        while True:
+            if len(cards) < self.min_cards:
+                logger.debug(
+                    f"Cache has {len(cards)} < {self.min_cards} cards, "
+                    f"generating more for card {card}"
+                )
+                new_cards = self.card_generator(card)
+                cards.extend(new_cards)
+                logger.debug(
+                    f"Extended cache with {len(new_cards)} new cards "
+                    f"for field text {card}"
+                )
+
+            new_card = cards.popleft()
+            self.write_to_cache(card, cards)
+            yield new_card
+
+
+class NextCardFactory(CardFactory):
+    """Can be called to take the next language card from a card generator."""
+
+    def __init__(self, card_generator: CardGenerator):
+        self.card_generator = card_generator
+        self._card_iterator = None
+
+    def __call__(self, card: TranslationCard) -> TranslationCard:
+        """Take next language card from the cards generated from a card generator."""
+
+        if self._card_iterator is None:
+            try:
+                self._card_iterator = iter(self.card_generator(card))
+            except CardGenerationError as e:
+                logger.error(f"Error in card generator: {e}")
+                self._card_iterator = iter([])
+
+        try:
+            new_card = next(self._card_iterator)
+        except StopIteration:
+            logger.warning(
+                f"No cards generated. Using input card {card} as placeholder."
+            )
+            new_card = card
+
+        return new_card
+
+
 def create_card_generator(config: CardGeneratorConfig, url: Optional[str] = None):
     """Create a CardGenerator from the config."""
     if url is None:
@@ -243,21 +357,33 @@ def create_card_generator(config: CardGeneratorConfig, url: Optional[str] = None
     else:
         card_generator = RemoteCardGenerator(url=url, config=config)
 
-    return lru_cache(maxsize=None)(card_generator)
+    return card_generator
+
+
+def create_card_factory(config: CardGeneratorConfig) -> CardFactory:
+    """Create a CardFactory from the config."""
+    card_generator = create_card_generator(config)
+
+    name = config.to_path_friendly_str()
+    card_generator = JSONCachedCardGenerator(card_generator, name=name)
+    card_factory = NextCardFactory(card_generator)
+    card_factory = lru_cache(maxsize=None)(card_factory)
+    return card_factory
 
 
 CardGeneratorFactory = Callable[[CardGeneratorConfig], CardGenerator]
+CardFactoryCreator = Callable[[CardGeneratorConfig], CardFactory]
 
 
-class CachedCardGeneratorFactory:
+class CachedCardFactoryCreator:
     """Create a CardGenerator from the config. Cache the result."""
 
-    def __init__(self, context_id: int, card_generator_factory: CardGeneratorFactory):
+    def __init__(self, context_id: int, card_factory_creator: CardFactoryCreator):
         self.context_id = context_id
-        self._call = lru_cache(maxsize=None)(card_generator_factory)
+        self._call = lru_cache(maxsize=None)(card_factory_creator)
 
-    def __call__(self, config: CardGeneratorConfig) -> CardGenerator:
+    def __call__(self, config: CardGeneratorConfig) -> CardFactory:
         return self._call(config)
 
 
-cached2_card_generator_factory = lru_cache(maxsize=1)(CachedCardGeneratorFactory)
+cached2_card_factory_creator = lru_cache(maxsize=1)(CachedCardFactoryCreator)
