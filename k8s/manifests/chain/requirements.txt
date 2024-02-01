@@ -1,7 +1,0 @@
-langchain
-langserve[all]
-openai<1.0
-fastapi
-uvicorn
-
-# Version numbers
