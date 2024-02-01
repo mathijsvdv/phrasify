@@ -40,8 +40,8 @@ spec:
           name: ollama
         resources:
           limits:
-            cpu: 8000m
-            memory: 8Gi
+            cpu: 6000m
+            memory: 6Gi
       hostname: ollama
       volumes:
       - name: ollama
