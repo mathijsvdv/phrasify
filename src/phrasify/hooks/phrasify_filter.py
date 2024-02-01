@@ -13,6 +13,17 @@ from ..chains.base import Chain
 from ..constants import GENERATED_CARDS_DIR
 from ..error import CardGenerationError, ChainError
 from ..factory import get_card_side, get_chain, get_llm_name, get_prompt
+from ..card_gen import (
+    CardFactory,
+    CardFactoryCreator,
+    CardGenerator,
+    CardGeneratorConfig,
+    CardGeneratorFactory,
+    cached2_card_generator_factory,
+    create_card_generator,
+    create_card_factory,
+)
+from ..error import CardGenerationError
 from ..logging import get_logger
 
 # Possible hooks and filters to use
@@ -300,9 +311,9 @@ class PhrasifyFilter:
     the generated one."""
 
     def __init__(
-        self, card_generator: CardGenerator, language_field_names: LanguageFieldNames
+        self, card_factory: CardFactory, language_field_names: LanguageFieldNames
     ):
-        self.card_generator = card_generator
+        self.card_factory = card_factory
         self.language_field_names = language_field_names
 
     def __call__(self, field_text: str, field_name: str, context: HasNote) -> str:
@@ -311,25 +322,7 @@ class PhrasifyFilter:
             return f"(phrasify filter applied to '{field_name}' field)"
 
         input_card = self.language_field_names.create_card(context.note())
-
-        try:
-            cards = self.card_generator(input_card)
-        except CardGenerationError as e:
-            # Error generating card, return the field text unchanged
-            logger.error(
-                f"Error in card generator: {e}\nReturning field text "
-                f"{field_text!r} unchanged"
-            )
-            return field_text
-
-        if not cards:
-            logger.warning(
-                f"No cards generated. Returning field text {field_text!r} unchanged"
-            )
-            # No cards generated, return the field text unchanged
-            return field_text
-
-        new_card = next(iter(cards))
+        new_card = self.card_factory(input_card)
         new_field_text = self.language_field_names.get_field_text(new_card, field_name)
 
         if new_field_text.strip() == "":
@@ -351,16 +344,29 @@ class PhrasifyFilter:
 
 def create_phrasify_filter(
     config: PhrasifyFilterConfig,
-    card_generator_factory: CardGeneratorFactory | None = None,
+    card_factory_creator: CardFactoryCreator | None = None,
 ):
-    """Create an PhrasifyFilter from the config."""
-    if card_generator_factory is None:
-        card_generator_factory = create_card_generator
+    """Create a PhrasifyFilter from the config."""
+    if card_factory_creator is None:
+        card_factory_creator = create_card_factory
 
-    card_generator = card_generator_factory(config.card_generator)
+    card_factory = card_factory_creator(config.card_generator)
     return PhrasifyFilter(
-        card_generator=card_generator, language_field_names=config.language_field_names
+        card_factory=card_factory, language_field_names=config.language_field_names
     )
+
+
+def create_llm_filter(
+    config: LLMFilterConfig,
+    card_factory_creator: Optional[CardFactoryCreator] = None,
+):
+    """Create an LLMFilter from the config."""
+    if card_factory_creator is None:
+        card_factory_creator = create_card_factory
+
+    card_factory = card_factory_creator(config.card_generator)
+    card_side = get_card_side(config.card_side)
+    return LLMFilter(card_factory=card_factory, card_side=card_side)
 
 
 def create_llm_filter(
@@ -465,7 +471,7 @@ def phrasify_filter(
     field_name: str,
     filter_name: str,
     context: HasNote,
-    card_generator_factory: CardGeneratorFactory | None = None,
+    card_factory_creator: CardFactoryCreator | None = None,
 ) -> str:
     """Filter that generates the front or back of a language card from the front text
 
@@ -504,14 +510,14 @@ def phrasify_filter(
     except ValueError:
         return invalid_name(filter_name)
 
-    if card_generator_factory is None:
-        card_generator_factory = create_card_generator
+    if card_factory_creator is None:
+        card_factory_creator = create_card_factory
 
-    card_generator_factory = cached2_card_generator_factory(
-        id(context), card_generator_factory
+    card_factory_creator = cached2_card_factory_creator(
+        id(context), card_factory_creator
     )
     filt = create_phrasify_filter(
-        filter_config, card_generator_factory=card_generator_factory
+        filter_config, card_factory_creator=card_factory_creator
     )
 
     return filt(field_text=field_text, field_name=field_name, context=context)
