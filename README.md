@@ -72,6 +72,69 @@ That's it! When you review a card with the note type you just edited, Phrasify w
 `phrasify` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
 
 ## Development
+### Setting up the development environment
+First, clone the repository:
+```bash
+git clone https://github.com/mathijsvdv/phrasify.git
+```
+
+This repo uses [Hatch](https://github.com/pypa/hatch) for dependency management. I recommend
+[using `pipx` to install it globally](https://hatch.pypa.io/latest/install/). To ensure that Visual Studio Code recognizes the virtual environment, set the virtual environment directory ./direnv:
+```bash
+hatch config set dirs.env.virtual .direnv
+```
+
+To set up the virtual environment along with pre-commit hooks and jupyter notebooks, run:
+```bash
+make init
+```
+
+To activate the virtual environment, run:
+```bash
+hatch shell
+```
+
+You will need to set up the OPENAI_API_KEY environment variable as described in the [installation](#installation) section.
+In the directory `src/phrasify/user_files` you need to create two files:
+- `.env` with the following content:
+    ```
+    OPENAI_API_KEY=your-api-key
+    INIT_PHRASIFY_ADDON=false
+    ```
+- `.env.prod` with the following content:
+    ```
+    OPENAI_API_KEY=your-api-key
+    INIT_PHRASIFY_ADDON=true
+    ```
+
+The `INIT_PHRASIFY_ADDON` environment variable is used to determine whether the field filters from the
+add-on should be initialized. We want to disable this in the development environment where
+the unit tests are run, but enable it when testing the add-on in Anki (i.e. when [applying the current code to your Anki installation](#windows-installation-wsl-development-only---applying-the-current-code-to-your-anki-installation)).
+
+### Running tests
+To run the tests, run:
+```bash
+hatch run test:run
+```
+
+Running the tests with code coverage can be done using:
+```bash
+hatch run test:cov
+```
+
+### Windows installation, WSL development only - Applying the current code to your Anki installation
+To apply the current development code to your Anki installation, run:
+```bash
+make ankidev
+```
+
+This copies the current code to your Anki add-ons folder. You can then restart Anki to see the changes.
+
+### Building the add-on
+To build the add-on, run:
+```bash
+make build
+```
 
 ### Branching strategy
 This project uses the [GitHub Flow](https://githubflow.github.io/]) branching strategy. No pushes to `main` are allowed, only pull requests from feature branches that branch off of `main`. Each feature branch has the following naming convention:
