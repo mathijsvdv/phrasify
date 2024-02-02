@@ -1,23 +1,16 @@
-.PHONY: ankisync init serve docker_push deploy undeploy health_local
+.PHONY: ankienv ankisync init serve docker_push deploy undeploy health_local
 
+PHRASIFY_VERSION := 0.1.0
 CHAIN_API_PORT := 8800
 IMAGE := phrasify
 WIN_APPDATA := $(shell wslpath "$$(wslvar APPDATA)")
-ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/9999999999
+ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/phrasify
+ANKI_ADDON_COPY_ENV := "prod"
+RELEASE_FOLDER := "./releases"
+RELEASE_NAME := "Phrasify-v${PHRASIFY_VERSION}"
 SITE_PACKAGES_PATH := ./.direnv/phrasify/lib/python3.9/site-packages
 REQUIREMENTS := charset_normalizer dotenv
 K8S_ENV?=dev
-
-ankisync:
-	rsync -avz ./src/phrasify/ ${ANKI_ADDON_PATH}/ --delete \
-	--cvs-exclude --exclude "__pycache__/" --exclude "*.py[cod]" --exclude "*\$py.class" \
-	--exclude ".env" --exclude ".env.*";
-	for req in ${REQUIREMENTS}; do \
-		rsync -avz ${SITE_PACKAGES_PATH}/$$req ${ANKI_ADDON_PATH}/lib/ --delete \
-		--cvs-exclude --exclude "__pycache__/" --exclude "*.py[cod]" --exclude "*\$py.class" \
-		--exclude ".env" --exclude ".env.*"; \
-	done
-	cp -f ./src/phrasify/user_files/.env.prod ${ANKI_ADDON_PATH}/user_files/.env
 
 init:
 	pre-commit install
@@ -26,6 +19,36 @@ init:
 	hatch env create
 	hatch run python -m ipykernel install --user --name phrasify --display-name "Python (phrasify)"
 	hatch run python -m nbstripout --install --attributes .gitattributes
+
+ankisync:
+	if [ ! -d ${ANKI_ADDON_PATH} ]; then \
+		mkdir -p ${ANKI_ADDON_PATH}; \
+	fi
+	rsync -avz ./src/phrasify/ ${ANKI_ADDON_PATH}/ --delete \
+	--cvs-exclude --exclude "__pycache__/" --exclude "*.py[cod]" --exclude "*\$py.class" \
+	--exclude ".env" --exclude ".env.*" --exclude "meta.json";
+	for req in ${REQUIREMENTS}; do \
+		rsync -avz ${SITE_PACKAGES_PATH}/$$req ${ANKI_ADDON_PATH}/lib/ --delete \
+		--cvs-exclude --exclude "__pycache__/" --exclude "*.py[cod]" --exclude "*\$py.class" \
+		--exclude ".env" --exclude ".env.*"; \
+	done
+
+ankimeta:
+	cp -f ./src/phrasify/meta.json ${ANKI_ADDON_PATH}/meta.json
+
+ankienv:
+	if [ $(ANKI_ADDON_COPY_ENV) != "" ]; then \
+		cp -f ./src/phrasify/user_files/.env.${ANKI_ADDON_COPY_ENV} ${ANKI_ADDON_PATH}/user_files/.env; \
+	fi
+
+ankidev: ankisync ankimeta ankienv
+
+build: ANKI_ADDON_PATH="$(RELEASE_FOLDER)/$(RELEASE_NAME)"
+build: ankisync
+	cd $(ANKI_ADDON_PATH) && zip -r9 ../${RELEASE_NAME}.ankiaddon .
+
+clean:
+	rm -rf $(RELEASE_FOLDER)
 
 serve:
 	uvicorn src.phrasify_api.main:app --port $(CHAIN_API_PORT) --reload

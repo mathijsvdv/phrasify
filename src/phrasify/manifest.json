@@ -1,9 +1,8 @@
 {
     "name": "Phrasify",
-    "package": "9999999999",
-    "ankiweb_id": "9999999999",
+    "package": "phrasify",
     "author": "mathijsvdv",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "homepage": "https://github.com/mathijsvdv/phrasify",
     "conflicts": []
 }

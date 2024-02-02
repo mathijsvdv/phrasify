@@ -168,3 +168,6 @@ secrets.yaml
 !k8s/envs/example/secrets.yaml
 
 junit/
+
+# Release files
+releases/
