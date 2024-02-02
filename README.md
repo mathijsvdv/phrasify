@@ -31,10 +31,48 @@ At the moment, Phrasify is not yet available on AnkiWeb. You can install it manu
     ```
 3. Restart Anki and you are good to go!
 
+## Try it out!
+Phrasify's automatic card generation can be enabled for a given note type by navigating to `Tools` > `Manage Note Types` > (Select your note type).
+
+If you go to the `Fields` button, you might see fields "Front" and "Back" like this:
+![Field Names](assets/field%20names.png)
+
+Phrasify works using a [field filter](https://docs.ankiweb.net/templates/fields.html), by replacing the values in these fields with the generated
+sentence. To do this, you need to tell Phrasify which fields to replace. Going back to
+`Tools` > `Manage Note Types` > (Select your note type), click on the `Cards` button.
+
+In the `Front Template` and `Back Template`, replace the fields `{{Front}}` with
+```
+{{phrasify vocab-to-sentence source_lang=English target_lang=Ukrainian source_field=Front target_field=Back:Front}}
+```
+
+and `{{Back}}` with
+```
+{{phrasify vocab-to-sentence source_lang=English target_lang=Ukrainian source_field=Front target_field=Back:Back}}
+```
+
+For the default Basic card, the `Front Template` would then look like this:
+![Front Template](assets/front%20template.png)
+
+and the `Back Template` would look like this:
+![Back Template](assets/back%20template.png)
+
+This will tell Phrasify to replace the fields `Front` and `Back` with the generated sentence
+at the spot in the template where `{{phrasify ...:Front}}` and `{{phrasify ...:Back}}` are.
+
+> Be sure to adjust the following arguments of the `{{phrasify...}}` filter to your needs:
+> - `source_lang`: source language, i.e. language that you know,
+> - `target_lang`: target language, i.e. language that you want to learn,
+> - `source_field`: field name for source language: stores the vocabulary in the language that you know,
+> - `target_field`: field name for target language: stores the vocabulary in the language that you want to learn.
+
+That's it! When you review a card with the note type you just edited, Phrasify will generate a sentence using the vocabulary on the card and replace the fields `Front` and `Back` with the generated sentence.
+
 ## License
 `phrasify` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
 
 ## Development
+
 ### Branching strategy
 This project uses the [GitHub Flow](https://githubflow.github.io/]) branching strategy. No pushes to `main` are allowed, only pull requests from feature branches that branch off of `main`. Each feature branch has the following naming convention:
 ```
