@@ -23,6 +23,7 @@ For example, say I'm trying to learn the Ukrainian word "дарувати" (to g
     - [Running tests](#running-tests)
     - [Windows installation, WSL development only - Applying the current code to your Anki installation](#windows-installation-wsl-development-only---applying-the-current-code-to-your-anki-installation)
     - [Building the add-on](#building-the-add-on)
+    - [Deployment on AWS EKS](#deployment-on-aws-eks)
     - [Branching strategy](#branching-strategy)
 
 ## Installation
@@ -141,7 +142,7 @@ To build the add-on, run:
 make build
 ```
 
-### Deployment
+### Deployment on AWS EKS
 To create the necessary resources on AWS, including a VPC and an EKS cluster, run the following command:
 ```bash
 cd terraform
