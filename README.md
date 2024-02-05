@@ -3,7 +3,7 @@
 |--- | --- |
 | Testing | [![CI - Test](https://github.com/mathijsvdv/phrasify/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/mathijsvdv/phrasify/actions/workflows/unit-tests.yml) [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mathijsvdv/phrasify/main.svg)](https://results.pre-commit.ci/latest/github/mathijsvdv/phrasify/main) [![codecov](https://codecov.io/gh/mathijsvdv/phrasify/graph/badge.svg?token=PISQ2ZER6N)](https://codecov.io/gh/mathijsvdv/phrasify) |
 
-[Anki](https://apps.ankiweb.net/) add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into fresh sentences on the fly and have conversations using your vocabulary.
+[Anki](https://apps.ankiweb.net/) add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into fresh sentences on the fly.
 
 Anki is a great tool for learning vocabulary, but it's not great at teaching you how to *use* that vocabulary in a sentence. This matters, especially for languages like Ukrainian where each verb and noun can appear in many different forms! Phrasify uses an LLM like GPT 3.5/4 to generate sentences on the fly using your vocabulary. This way, you can practice using your vocabulary in a sentence and start using it in conversations.
 
