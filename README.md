@@ -16,9 +16,14 @@ For example, say I'm trying to learn the Ukrainian word "дарувати" (to g
 **Table of Contents**
 
 - [Installation](#installation)
+- [Try it out!](#try-it-out)
 - [License](#license)
 - [Development](#development)
-  - [Branching strategy](#branching-strategy)
+    - [Setting up the development environment](#setting-up-the-development-environment)
+    - [Running tests](#running-tests)
+    - [Windows installation, WSL development only - Applying the current code to your Anki installation](#windows-installation-wsl-development-only---applying-the-current-code-to-your-anki-installation)
+    - [Building the add-on](#building-the-add-on)
+    - [Branching strategy](#branching-strategy)
 
 ## Installation
 At the moment, Phrasify is not yet available on AnkiWeb. You can install it manually by following the instructions below.
