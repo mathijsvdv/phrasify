@@ -211,3 +211,5 @@ terraform.rc
 
 # Ignore terraform lock file
 .terraform.lock.hcl
+# Release files
+releases/
