@@ -21,7 +21,8 @@ For example, say I'm trying to learn the Ukrainian word "дарувати" (to g
 - [Development](#development)
     - [Setting up the development environment](#setting-up-the-development-environment)
     - [Running tests](#running-tests)
-    - [Windows installation, WSL development only - Applying the current code to your Anki installation](#windows-installation-wsl-development-only---applying-the-current-code-to-your-anki-installation)
+    - [Applying the current code to your Anki installation](#applying-the-current-code-to-your-anki-installation)
+    - [Debugging the add-on](#debugging-the-add-on)
     - [Building the add-on](#building-the-add-on)
     - [Branching strategy](#branching-strategy)
 
@@ -114,7 +115,7 @@ In the directory `src/phrasify/user_files` you need to create two files:
 
 The `INIT_PHRASIFY_ADDON` environment variable is used to determine whether the field filters from the
 add-on should be initialized. We want to disable this in the development environment where
-the unit tests are run, but enable it when testing the add-on in Anki (i.e. when [applying the current code to your Anki installation](#windows-installation-wsl-development-only---applying-the-current-code-to-your-anki-installation)).
+the unit tests are run, but enable it when testing the add-on in Anki (i.e. when [applying the current code to your Anki installation](#applying-the-current-code-to-your-anki-installation)).
 
 ### Running tests
 To run the tests, run:
@@ -127,7 +128,7 @@ Running the tests with code coverage can be done using:
 hatch run test:cov
 ```
 
-### Windows installation, WSL development only - Applying the current code to your Anki installation
+### Applying the current code to your Anki installation
 To apply the current development code to your Anki installation, run:
 ```bash
 make ankidev
@@ -135,12 +136,24 @@ make ankidev
 
 This copies the current code to your Anki add-ons folder. You can then restart Anki to see the changes.
 
+> **Important for Linux and MacOS users**: The `ankidev` rule (indirectly) makes use of the `ANKI_ADDONS_PATH` variable, defined in
+> `config-default.mk`. This variable is set to the default Anki add-ons folder on Windows with WSL. This means that the `ankidev` rule only works out of the box for Windows with WSL.
+>
+> For Linux and MacOS users, you need to override this by setting `ANKI_ADDONS_PATH` in
+> `config.mk` (which is gitignored) to the path of your Anki add-ons folder. You can find the
+> folder by going to `Tools` > `Add-ons` > `View Files` in Anki. Place the following line in
+> `config.mk` (create it if it doesn't exist):
+> ```Makefile
+> ANKI_ADDONS_PATH = /path/to/your/anki/addons/folder
+> ```
+
+
 ### Debugging the add-on
 For debugging the add-on, it helps to have a console open which shows all logging and print output. See https://addon-docs.ankiweb.net/console-output.html#showing-the-console for more information.
 
 The logging level can be set in the /src/phrasify/logging_config.json file. The
 default logging level is "INFO", but you can set it to "DEBUG" for more detailed logging
-and subsequently [apply it to your Anki installation](#windows-installation-wsl-development-only---applying-the-current-code-to-your-anki-installation).
+and subsequently [apply it to your Anki installation](#applying-the-current-code-to-your-anki-installation).
 
 ### Building the add-on
 To build the add-on, run:

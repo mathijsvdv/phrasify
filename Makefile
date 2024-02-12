@@ -1,17 +1,14 @@
-.PHONY: ankienv ankisync init serve docker_push deploy undeploy health_local
+CONFIG_FILES = config-default.mk $(wildcard config.mk)
+include $(CONFIG_FILES)
 
-PHRASIFY_VERSION := 0.1.0
-CHAIN_API_PORT := 8800
-IMAGE := phrasify
-WIN_APPDATA := $(shell wslpath "$$(wslvar APPDATA)")
-ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/phrasify
-ANKI_ADDON_COPY_ENV := "prod"
-RELEASE_FOLDER := "./releases"
-RELEASE_NAME := "Phrasify-v${PHRASIFY_VERSION}"
-SITE_PACKAGES_PATH = $(shell hatch run site_packages_path)
-REQUIREMENTS := charset_normalizer dotenv
-K8S_ENV?=dev
+ANKI_ADDON_PATH = ${ANKI_ADDONS_PATH}/${ANKI_ADDON_PACKAGE}
+RELEASE_NAME = "${ANKI_ADDON_NAME}-v${ANKI_ADDON_VERSION}"
 
+.PHONY: print-%
+print-%:
+	@echo $* = $($*)
+
+.PHONY: init
 init:
 	pre-commit install
 	pre-commit install --hook-type commit-msg
@@ -20,6 +17,7 @@ init:
 	hatch run ipykernel_install
 	hatch run nbstripout_install
 
+.PHONY: ankisync
 ankisync:
 	if [ ! -d ${ANKI_ADDON_PATH} ]; then \
 		mkdir -p ${ANKI_ADDON_PATH}; \
@@ -33,37 +31,47 @@ ankisync:
 		--exclude ".env" --exclude ".env.*"; \
 	done
 
+.PHONY: ankimeta
 ankimeta:
 	cp -f ./src/phrasify/meta.json ${ANKI_ADDON_PATH}/meta.json
 
+.PHONY: ankienv
 ankienv:
 	if [ $(ANKI_ADDON_COPY_ENV) != "" ]; then \
 		cp -f ./src/phrasify/user_files/.env.${ANKI_ADDON_COPY_ENV} ${ANKI_ADDON_PATH}/user_files/.env; \
 	fi
 
+.PHONY: ankidev
 ankidev: ankisync ankimeta ankienv
 
+.PHONY: build
 build: ANKI_ADDON_PATH="$(RELEASE_FOLDER)/$(RELEASE_NAME)"
 build: ankisync
 	cd $(ANKI_ADDON_PATH) && zip -r9 ../${RELEASE_NAME}.ankiaddon .
 
+.PHONY: clean
 clean:
 	rm -rf $(RELEASE_FOLDER)
 
+.PHONY: serve
 serve:
 	uvicorn src.phrasify_api.main:app --port $(CHAIN_API_PORT) --reload
 
+.PHONY: docker_run
 docker_run:
 	docker build -t mathijsvdv/${IMAGE} .
 	docker run --name phrasify -p 8800:8800  mathijsvdv/${IMAGE}
 
+.PHONY: docker_push
 docker_push:
 	docker build -t mathijsvdv/${IMAGE} .
 	docker push mathijsvdv/${IMAGE}
 
+.PHONY: docker_run_ollama
 docker_run_ollama:
 	docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
 
+.PHONY: deploy
 # When deploying to `minikube` be sure to run `minikube tunnel` in a separate terminal first
 deploy:
 	kubectl apply -f ./k8s/namespaces.yaml
@@ -71,15 +79,19 @@ deploy:
 	kubectl apply -f ./k8s/apps/ollama.yaml
 	kubectl apply -f ./k8s/apps/phrasify.yaml
 
+.PHONY: deploy_ollama
 deploy_ollama:
 	kubectl apply -f ./k8s/namespaces.yaml
 	kubectl apply -f ./k8s/apps/ollama.yaml
 
+.PHONY: undeploy
 undeploy:
 	kubectl delete -f ./k8s/apps/phrasify.yaml
 
+.PHONY: undeploy_ollama
 undeploy_ollama:
 	kubectl delete -f ./k8s/apps/ollama.yaml
 
+.PHONY: health_local
 health_local:
 	curl -X GET "http://localhost:$(CHAIN_API_PORT)/health"
