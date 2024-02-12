@@ -1,8 +1,14 @@
-from pathlib import Path
+import os
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key
+
+from phrasify.constants import DOTENV_PATH
 
 
 def load_env():
-    dotenv_path = Path(__file__).parent / "user_files" / ".env"
-    load_dotenv(dotenv_path)
+    load_dotenv(DOTENV_PATH)
+
+
+def env_set_key(key: str, value: str):
+    set_key(DOTENV_PATH, key, value)
+    os.environ[key] = value
