@@ -136,7 +136,7 @@ make ankidev
 
 This copies the current code to your Anki add-ons folder. You can then restart Anki to see the changes.
 
-> **Note for Linux and MacOS users**: The `ankidev` rule (indirectly) makes use of the `ANKI_ADDONS_PATH` variable, defined in
+> **Important for Linux and MacOS users**: The `ankidev` rule (indirectly) makes use of the `ANKI_ADDONS_PATH` variable, defined in
 > `config-default.mk`. This variable is set to the default Anki add-ons folder on Windows with WSL. This means that the `ankidev` rule only works out of the box for Windows with WSL.
 >
 > For Linux and MacOS users, you need to override this by setting `ANKI_ADDONS_PATH` in
