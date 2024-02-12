@@ -29,13 +29,11 @@ For example, say I'm trying to learn the Ukrainian word "дарувати" (to g
 ## Installation
 At the moment, Phrasify is not yet available on AnkiWeb. You can install it manually by following the instructions below.
 1. Download the latest release from the [releases page](https://github.com/mathijsvdv/phrasify/releases). If you already have Anki installed, you can double-click the .ankiaddon file to install the addon.
-2. Phrasify makes use of the OpenAI API to generate sentences. We need to set up the API key in order to use the add-on. To do this, follow these steps:
+2. Restart Anki. Phrasify will warn you in case you haven't set up your OpenAI API key yet, in which case, go to step 3.
+3. Phrasify makes use of the OpenAI API to generate sentences. We need to set up the API key in order to use the add-on. To do this, follow these steps:
     1. Sign up for an API key at [OpenAI](https://beta.openai.com/signup/) if you haven't already.
-    2. Once you have your API key, you need to add it to your environment variables. You can do this as follows: go to `Tools` > `Add-ons` > (Select Phrasify) > `View Files` in Anki to find the add-on folder. Then navigate to /user_files and create a text file called ".env" with the following contents:
-    ```
-    OPENAI_API_KEY=your-api-key
-    ```
-3. Restart Anki and you are good to go!
+    2. Once you have your API key, open Anki and go to `Tools` > `Phrasify - Set OpenAI API Key...`. Copy-paste your API key into the dialog that pops up and click `Save`.
+4. That's it! You're ready to start using Phrasify.
 
 ## Try it out!
 Phrasify's automatic card generation can be enabled for a given note type by navigating to `Tools` > `Manage Note Types` > (Select your note type).
