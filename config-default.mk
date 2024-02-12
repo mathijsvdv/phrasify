@@ -1,6 +1,6 @@
 ANKI_ADDON_NAME = Phrasify
 ANKI_ADDON_PACKAGE = phrasify
-ANKI_ADDON_VERSION = 0.1.0
+ANKI_ADDON_VERSION = 0.1.1
 RELEASE_FOLDER = "./releases"
 WIN_APPDATA = $(shell wslpath "$$(wslvar APPDATA)")
 ANKI_ADDONS_PATH = ${WIN_APPDATA}/Anki2/addons21
