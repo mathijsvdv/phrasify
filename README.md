@@ -135,6 +135,13 @@ make ankidev
 
 This copies the current code to your Anki add-ons folder. You can then restart Anki to see the changes.
 
+### Debugging the add-on
+For debugging the add-on, it helps to have a console open which shows all logging and print output. See https://addon-docs.ankiweb.net/console-output.html#showing-the-console for more information.
+
+The logging level can be set in the /src/phrasify/logging_config.json file. The
+default logging level is "INFO", but you can set it to "DEBUG" for more detailed logging
+and subsequently [apply it to your Anki installation](#windows-installation-wsl-development-only---applying-the-current-code-to-your-anki-installation).
+
 ### Building the add-on
 To build the add-on, run:
 ```bash
