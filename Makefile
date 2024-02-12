@@ -8,7 +8,7 @@ ANKI_ADDON_PATH := ${WIN_APPDATA}/Anki2/addons21/phrasify
 ANKI_ADDON_COPY_ENV := "prod"
 RELEASE_FOLDER := "./releases"
 RELEASE_NAME := "Phrasify-v${PHRASIFY_VERSION}"
-SITE_PACKAGES_PATH := ./.direnv/phrasify/lib/python3.9/site-packages
+SITE_PACKAGES_PATH = $(shell hatch run site_packages_path)
 REQUIREMENTS := charset_normalizer dotenv
 K8S_ENV?=dev
 

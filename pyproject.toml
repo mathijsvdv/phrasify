@@ -53,6 +53,9 @@ dependencies = [
   "langchain",
 ]
 
+[tool.hatch.envs.default.scripts]
+site_packages_path = "python -c 'import sysconfig; print(sysconfig.get_paths()[\"purelib\"])'"
+
 [tool.hatch.envs.test]
 dependencies = [
   "pytest",
