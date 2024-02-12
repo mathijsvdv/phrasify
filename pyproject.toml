@@ -54,6 +54,8 @@ dependencies = [
 ]
 
 [tool.hatch.envs.default.scripts]
+ipykernel_install = "python -m ipykernel install --user --name phrasify --display-name \"Python (phrasify)\""
+nbstripout_install = "python -m nbstripout --install --attributes .gitattributes"
 site_packages_path = "python -c 'import sysconfig; print(sysconfig.get_paths()[\"purelib\"])'"
 
 [tool.hatch.envs.test]

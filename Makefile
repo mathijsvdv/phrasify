@@ -17,8 +17,8 @@ init:
 	pre-commit install --hook-type commit-msg
 	pre-commit autoupdate
 	hatch env create
-	hatch run python -m ipykernel install --user --name phrasify --display-name "Python (phrasify)"
-	hatch run python -m nbstripout --install --attributes .gitattributes
+	hatch run ipykernel_install
+	hatch run nbstripout_install
 
 ankisync:
 	if [ ! -d ${ANKI_ADDON_PATH} ]; then \
