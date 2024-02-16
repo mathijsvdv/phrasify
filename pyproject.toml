@@ -53,6 +53,11 @@ dependencies = [
   "langchain",
 ]
 
+[tool.hatch.envs.default.scripts]
+ipykernel_install = "python -m ipykernel install --user --name phrasify --display-name \"Python (phrasify)\""
+nbstripout_install = "python -m nbstripout --install --attributes .gitattributes"
+site_packages_path = "python -c 'import sysconfig; print(sysconfig.get_paths()[\"purelib\"])'"
+
 [tool.hatch.envs.test]
 dependencies = [
   "pytest",
@@ -104,6 +109,8 @@ skip-string-normalization = true
 [tool.ruff]
 target-version = "py38"
 line-length = 88
+
+[tool.ruff.lint]
 select = [
   "A",
   "ARG",
@@ -148,12 +155,12 @@ unfixable = [
   "F401",
 ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["phrasify"]
 
-[tool.ruff.flake8-tidy-imports]
+[tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # Tests can use magic values, assertions, and relative imports
 "tests/**/*" = ["PLR2004", "S101", "TID252"]

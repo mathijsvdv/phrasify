@@ -7,7 +7,6 @@ from .__about__ import NAME, __version__  # noqa: F401
 import os
 
 from .env import load_env
-from .hooks import init_hooks
 from .logging import setup_logging, get_logger
 
 
@@ -21,7 +20,12 @@ def init_package():
 
 
 def init_addon():  # pragma: no cover
+    from .dialogs import init_dialogs
+    from .hooks import init_hooks
+
     logger.info("Initializing addon")
+
+    init_dialogs()
     init_hooks()
 
 
