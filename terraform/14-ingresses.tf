@@ -21,7 +21,7 @@ resource "null_resource" "ingresses" {
   }
   provisioner "local-exec" {
     when    = destroy
-    command = "aws eks update-kubeconfig --name $(EKS_CLUSTER_NAME) --region $(AWS_REGION) && kubectl config use-context \"$EKS_CONTEXT\" && kubectl delete ing --all -A"
+    command = "aws eks update-kubeconfig --name \"$EKS_CLUSTER_NAME\" --region \"$AWS_REGION\" && kubectl config use-context \"$EKS_CONTEXT\" && kubectl delete ing --all -A"
     environment = {
       EKS_CONTEXT = self.triggers.eks_context
       EKS_CLUSTER_NAME = self.triggers.eks_cluster_name
