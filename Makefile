@@ -75,7 +75,7 @@ docker_run_ollama:
 # When deploying to `minikube` be sure to run `minikube tunnel` in a separate terminal first
 deploy:
 	kubectl apply -f ./k8s/namespaces.yaml
-	kubectl apply -f ./k8s/envs/$(K8S_ENV)/
+	kubectl apply -f ./k8s/envs/$(K8S_ENV)/ --recursive
 	kubectl apply -f ./k8s/apps/ollama.yaml
 	kubectl apply -f ./k8s/apps/phrasify.yaml
 
