@@ -71,26 +71,42 @@ docker_push:
 docker_run_ollama:
 	docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
 
+.PHONY: deploy_env
+deploy_env:
+	kubectl apply -f ./k8s/namespaces.yaml
+	kubectl apply -f ./k8s/envs/$(K8S_ENV)/ --recursive
+
+.PHONY: deploy_phrasify
+deploy_phrasify: deploy_env
+	kubectl apply -f ./k8s/apps/phrasify.yaml
+
+.PHONY: deploy_ollama
+deploy_ollama: deploy_env
+	kubectl apply -f ./k8s/apps/ollama.yaml
+
 .PHONY: deploy
 # When deploying to `minikube` be sure to run `minikube tunnel` in a separate terminal first
-deploy:
+deploy: deploy_phrasify deploy_ollama
 	kubectl apply -f ./k8s/namespaces.yaml
 	kubectl apply -f ./k8s/envs/$(K8S_ENV)/ --recursive
 	kubectl apply -f ./k8s/apps/ollama.yaml
 	kubectl apply -f ./k8s/apps/phrasify.yaml
 
-.PHONY: deploy_ollama
-deploy_ollama:
-	kubectl apply -f ./k8s/namespaces.yaml
-	kubectl apply -f ./k8s/apps/ollama.yaml
-
-.PHONY: undeploy
-undeploy:
+.PHONY: undeploy_phrasify
+undeploy_phrasify:
 	kubectl delete -f ./k8s/apps/phrasify.yaml
 
 .PHONY: undeploy_ollama
 undeploy_ollama:
 	kubectl delete -f ./k8s/apps/ollama.yaml
+
+.PHONY: undeploy_env
+undeploy_env: undeploy_phrasify undeploy_ollama
+	kubectl delete -f ./k8s/envs/$(K8S_ENV)/ --recursive
+	kubectl delete -f ./k8s/namespaces.yaml
+
+.PHONY: undeploy
+undeploy: undeploy_env
 
 .PHONY: health_local
 health_local:
