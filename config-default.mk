@@ -11,3 +11,4 @@ CHAIN_API_PORT = 8800
 IMAGE = phrasify
 K8S_ENV?=dev
 EKS_CLUSTER_NAME = demo
+AWS_REGION = eu-central-1
