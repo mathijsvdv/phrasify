@@ -36,7 +36,7 @@ resource "aws_subnet" "private-eu-central-1c" {
 
 resource "aws_subnet" "public-eu-central-1a" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.96.0/19"
+  cidr_block              = "10.0.96.0/24"
   availability_zone       = "eu-central-1a"
   map_public_ip_on_launch = true
 
@@ -49,7 +49,7 @@ resource "aws_subnet" "public-eu-central-1a" {
 
 resource "aws_subnet" "public-eu-central-1b" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.128.0/19"
+  cidr_block              = "10.0.97.0/24"
   availability_zone       = "eu-central-1b"
   map_public_ip_on_launch = true
 
@@ -62,7 +62,7 @@ resource "aws_subnet" "public-eu-central-1b" {
 
 resource "aws_subnet" "public-eu-central-1c" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.160.0/19"
+  cidr_block              = "10.0.98.0/24"
   availability_zone       = "eu-central-1c"
   map_public_ip_on_launch = true
 
