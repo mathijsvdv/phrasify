@@ -35,7 +35,10 @@ spec:
               name: phrasify-secret
               key: OPENAI_API_KEY
         - name: OLLAMA_URL
-          value: http://ollama-service:11434
+          valueFrom:
+            configMapKeyRef:
+              name: ollama-config
+              key: OLLAMA_URL
 ---
 apiVersion: v1
 kind: Service

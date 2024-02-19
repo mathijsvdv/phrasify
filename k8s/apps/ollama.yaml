@@ -48,6 +48,18 @@ spec:
     port: 11434
     targetPort: 11434
 ---
+# Be sure to update the OLLAMA_URL in the ollama-config ConfigMap
+# to match the service name of the ollama-service. If the service is
+# changed to `new-name`, the OLLAMA_URL should be updated to
+# `http://new-name:$(NEW_NAME_SERVICE_PORT)`.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-config
+  namespace: phrasify
+data:
+  OLLAMA_URL: http://ollama-service:$(OLLAMA_SERVICE_SERVICE_PORT)
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -94,7 +106,10 @@ spec:
           mountPath: /ollama-pull-scripts
         env:
         - name: OLLAMA_URL
-          value: http://ollama-service:11434
+          valueFrom:
+            configMapKeyRef:
+              name: ollama-config
+              key: OLLAMA_URL
         command:
         - /bin/sh
         - -c
