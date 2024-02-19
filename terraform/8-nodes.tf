@@ -111,3 +111,45 @@ resource "aws_eks_node_group" "large-nodes" {
     ignore_changes = [scaling_config[0].desired_size]
   }
 }
+
+resource "aws_eks_node_group" "gpu-nodes" {
+  cluster_name    = aws_eks_cluster.cluster.name
+  version         = var.cluster_version
+  node_group_name = "gpu-nodes"
+  node_role_arn   = aws_iam_role.nodes.arn
+
+  subnet_ids = [
+    aws_subnet.private-eu-central-1a.id,
+    aws_subnet.private-eu-central-1b.id,
+    aws_subnet.private-eu-central-1c.id
+  ]
+
+  capacity_type  = "ON_DEMAND"
+  ami_type = "AL2_x86_64_GPU"
+  instance_types = ["g4dn.xlarge"]  # Cheapest GPU instance, great for testing
+
+  scaling_config {
+    desired_size = 1
+    max_size     = 2
+    min_size     = 0
+  }
+
+  update_config {
+    max_unavailable = 1
+  }
+
+  labels = {
+    role = "general"
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.amazon-eks-worker-node-policy,
+    aws_iam_role_policy_attachment.amazon-eks-cni-policy,
+    aws_iam_role_policy_attachment.amazon-ec2-container-registry-read-only,
+  ]
+
+  # Allow external changes without Terraform plan difference
+  lifecycle {
+    ignore_changes = [scaling_config[0].desired_size]
+  }
+}
