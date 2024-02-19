@@ -8,7 +8,8 @@ metadata:
 
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
+  storageClassName: efs-sc
   resources:
     requests:
       storage: 8Gi
@@ -120,5 +121,9 @@ spec:
           chmod +x /tmp/*.sh
           echo "run ollama-pull.sh"
           /tmp/ollama-pull.sh
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
       restartPolicy: Never
   backoffLimit: 4
