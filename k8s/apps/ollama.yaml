@@ -94,7 +94,7 @@ spec:
           mountPath: /ollama-pull-scripts
         env:
         - name: OLLAMA_URL
-          value: http://$(OLLAMA_SERVICE_SERVICE_HOST):$(OLLAMA_SERVICE_SERVICE_PORT)
+          value: http://ollama-service:11434
         command:
         - /bin/sh
         - -c
