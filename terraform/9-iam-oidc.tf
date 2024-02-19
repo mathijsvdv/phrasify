@@ -14,7 +14,6 @@ resource "null_resource" "full-eks-cluster" {
     null_resource.full-route-table,
     aws_eks_cluster.cluster,
     aws_eks_node_group.private-nodes,
-    aws_eks_node_group.large-nodes,
     aws_eks_node_group.gpu-nodes,
     aws_iam_openid_connect_provider.eks
   ]
