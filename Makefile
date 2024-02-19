@@ -55,7 +55,7 @@ clean:
 
 .PHONY: serve
 serve:
-	uvicorn src.phrasify_api.main:app --port $(CHAIN_API_PORT) --reload
+	uvicorn src.phrasify_api.main:app --port $(API_PORT) --reload
 
 .PHONY: docker_run
 docker_run:
@@ -110,7 +110,7 @@ undeploy: undeploy_env
 
 .PHONY: health_local
 health_local:
-	curl -X GET "http://localhost:$(CHAIN_API_PORT)/health"
+	curl -X GET "http://localhost:$(API_PORT)/health"
 
 .PHONY: health_eks
 health_eks:
