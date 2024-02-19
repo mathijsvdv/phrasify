@@ -49,6 +49,27 @@ spec:
   ports:
   - protocol: TCP
     port: 8800
-    targetPort: 8800
-    nodePort: 30800
-  type: LoadBalancer
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: phrasify-ingress
+  namespace: phrasify
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+
+spec:
+  ingressClassName: alb
+  rules:
+  - host: phrasify.mvdvlies.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: phrasify-service
+            port:
+              number: 8800
