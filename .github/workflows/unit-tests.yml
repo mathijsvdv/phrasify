@@ -32,7 +32,7 @@ jobs:
     - name: Disable INIT_PHRASIFY_ADDON
       run: echo "INIT_PHRASIFY_ADDON=false" >> "$GITHUB_ENV"
     - name: Test package
-      run: hatch run test:cov
+      run: hatch run +py=$${{ matrix.python-version}} test:cov
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       env:
