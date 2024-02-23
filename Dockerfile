@@ -2,11 +2,11 @@ FROM python:3.9-slim
 WORKDIR /app
 RUN pip install --upgrade pip
 
-COPY src ./
 COPY requirements.lock .
-
 RUN sed '/-e/d' requirements.lock > requirements.txt
 RUN pip install -r requirements.txt
+
+COPY src ./
 
 EXPOSE 8800
 
