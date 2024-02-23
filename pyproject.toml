@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling", "hatch-requirements-txt"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
 name = "phrasify"
-dynamic = ["version", "dependencies", "optional-dependencies"]
+dynamic = ["version"]
 description = 'Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into fresh sentences on the fly and have conversations using your vocabulary.'
 readme = "README.md"
 requires-python = ">=3.8"
@@ -23,6 +23,18 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
+dependencies = [
+  "requests>=2.31.0",
+  "python-dotenv>=1.0.0"
+]
+[project.optional-dependencies]
+anki = ["anki>=2.1.66", "aqt[qt6]>=2.1.66"]
+api = ["fastapi", "fastapi-versionizer", "uvicorn"]
+
+[tool.rye]
+dev-dependencies = [
+  "anki>=2.1.66", "aqt[qt6]>=2.1.66", "langchain",
+]
 
 [project.urls]
 Documentation = "https://github.com/mathijsvdv/phrasify#readme"
@@ -31,12 +43,6 @@ Source = "https://github.com/mathijsvdv/phrasify"
 
 [tool.hatch.version]
 path = "src/phrasify/__about__.py"
-
-[tool.hatch.metadata.hooks.requirements_txt]
-files = ["requirements.txt"]
-
-[tool.hatch.metadata.hooks.requirements_txt.optional-dependencies]
-anki = ["requirements-anki.txt"]
 
 [tool.hatch.envs.default]
 dependencies = [
