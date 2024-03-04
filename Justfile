@@ -65,7 +65,7 @@ ankisync addon_path=anki_addon_path:
 ankimeta addon_path=anki_addon_path:
 	cp -f ./src/phrasify/meta.json {{addon_path}}/meta.json
 
-ankienv addon_path=anki_addon_path copy_env=anki_addon_copy_env:
+ankienv copy_env=anki_addon_copy_env addon_path=anki_addon_path:
 	if [ {{copy_env}} != "" ]; then \
 		cp -f ./src/phrasify/user_files/.env.{{copy_env}} {{addon_path}}/user_files/.env; \
 	fi
