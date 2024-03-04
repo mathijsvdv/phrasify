@@ -51,63 +51,6 @@ Source = "https://github.com/mathijsvdv/phrasify"
 [tool.hatch.version]
 path = "src/phrasify/__about__.py"
 
-[tool.hatch.envs.default]
-dependencies = [
-  "pytest",
-  "pytest-cov",
-  "pytest-mock",
-  "ipykernel",
-  "nbstripout",
-  "anki>=2.1.66",
-  "aqt[qt6]>=2.1.66",
-  "fastapi",
-  "fastapi-versionizer",
-  "uvicorn",
-  "langchain",
-]
-
-[tool.hatch.envs.default.scripts]
-ipykernel_install = "python -m ipykernel install --user --name phrasify --display-name \"Python (phrasify)\""
-nbstripout_install = "python -m nbstripout --install --attributes .gitattributes"
-site_packages_path = "python -c 'import sysconfig; print(sysconfig.get_paths()[\"purelib\"])'"
-
-[tool.hatch.envs.test]
-dependencies = [
-  "pytest",
-  "pytest-cov",
-  "pytest-mock",
-]
-
-[tool.hatch.envs.test.scripts]
-run = "pytest {args:tests}"
-cov = "pytest {args:tests} --cov --junitxml=junit/test-results.xml --cov-report term-missing --cov-report=xml --cov-report=html"
-
-[[tool.hatch.envs.all.matrix]]
-python = ["3.8", "3.9", "3.10", "3.11"]
-
-[tool.hatch.envs.lint]
-detached = true
-dependencies = [
-  "black>=23.1.0",
-  "mypy>=1.0.0",
-  "ruff>=0.0.243",
-]
-[tool.hatch.envs.lint.scripts]
-typing = "mypy --install-types --non-interactive {args:src/phrasify tests}"
-style = [
-  "ruff {args:.}",
-  "black --check --diff {args:.}",
-]
-fmt = [
-  "black {args:.}",
-  "ruff --fix {args:.}",
-  "style",
-]
-all = [
-  "style",
-  "typing",
-]
-
 [tool.pytest.ini_options]
 markers = [
   "slow: mark test as slow to run (deselect with '-m \"not slow\"')",

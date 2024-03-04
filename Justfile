@@ -21,9 +21,8 @@ image := env("IMAGE", "phrasify")
 k8s_env := env("K8S_ENV", "dev")
 
 @_default:
-	echo "List of available recipes:"
 	just --list
-	echo "\nThe following variables are available:"
+	echo "\n...with the following variables:"
 	just --evaluate
 
 # install the ipykernel for the virtual environment
@@ -73,6 +72,15 @@ ankienv addon_path=anki_addon_path copy_env=anki_addon_copy_env:
 
 ankidev: ankisync ankimeta ankienv
 
+# Run the tests
+test *args="tests":
+	{{python}} -m pytest {{args}}
+
+# Run the tests and generate a coverage report
+test-cov *args="tests":
+	{{python}} -m pytest {{args}} --cov --cov-report term-missing --cov-report=xml --cov-report=html --junitxml=junit/test-results.xml
+
+# Build the Anki addon
 build addon_path=(release_folder / release_name): (ankisync addon_path)
 	cd {{addon_path}} && zip -r9 ../{{release_name}}.ankiaddon .
 
