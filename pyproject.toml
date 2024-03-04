@@ -24,8 +24,8 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "requests>=2.31.0",
-  "python-dotenv>=1.0.0"
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
 ]
 [project.optional-dependencies]
 anki = ["anki>=2.1.66", "aqt[qt6]>=2.1.66"]
@@ -33,7 +33,14 @@ api = ["fastapi", "fastapi-versionizer", "uvicorn"]
 
 [tool.rye]
 dev-dependencies = [
-  "anki>=2.1.66", "aqt[qt6]>=2.1.66", "langchain"
+    "anki>=2.1.66",
+    "aqt[qt6]>=2.1.66",
+    "langchain>=0.1.10",
+    "pytest>=8.0.2",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "ipykernel>=6.29.3",
+    "nbstripout>=0.7.1",
 ]
 
 [project.urls]
