@@ -33,7 +33,7 @@ api = ["fastapi", "fastapi-versionizer", "uvicorn"]
 
 [tool.rye]
 dev-dependencies = [
-  "-e file:.[anki]", "langchain"
+  "anki>=2.1.66", "aqt[qt6]>=2.1.66", "langchain"
 ]
 
 [project.urls]
