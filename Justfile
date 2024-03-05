@@ -25,6 +25,9 @@ k8s_env := env("K8S_ENV", "dev")
 	echo "\n...with the following variables:"
 	just --evaluate
 
+@root:
+	echo {{justfile_directory()}}
+
 # install the ipykernel for the virtual environment
 ipykernel-install:
 	{{python}} -m ipykernel install --user --name phrasify --display-name "Python (phrasify)"
