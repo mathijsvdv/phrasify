@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling", "hatch-requirements-txt"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
 name = "phrasify"
-dynamic = ["version", "dependencies", "optional-dependencies"]
+dynamic = ["version"]
 description = 'Anki add-on that uses LLMs like ChatGPT to turn your vocabulary flashcards into fresh sentences on the fly and have conversations using your vocabulary.'
 readme = "README.md"
 requires-python = ">=3.8"
@@ -23,6 +23,12 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
+dependencies = [
+  "requests>=2.31.0",
+  "python-dotenv>=1.0.0",
+]
+[project.optional-dependencies]
+anki = ["anki>=2.1.66", "aqt[qt6]>=2.1.66"]
 
 [project.urls]
 Documentation = "https://github.com/mathijsvdv/phrasify#readme"
@@ -32,13 +38,20 @@ Source = "https://github.com/mathijsvdv/phrasify"
 [tool.hatch.version]
 path = "src/phrasify/__about__.py"
 
-[tool.hatch.metadata.hooks.requirements_txt]
-files = ["requirements.txt"]
+[tool.hatch.env]
+requires = ["hatch-pip-compile"]
 
-[tool.hatch.metadata.hooks.requirements_txt.optional-dependencies]
-anki = ["requirements-anki.txt"]
+[tool.hatch.envs.template]
+template = "template"
+type = "pip-compile"
+lock-filename = "requirements/{env_name}.txt"
+python = "3.9"
+
+[tool.hatch.envs.template.scripts]
+site-packages-path = "python -c 'import sysconfig; print(sysconfig.get_paths()[\"purelib\"])'"
 
 [tool.hatch.envs.default]
+template = "template"
 dependencies = [
   "pytest",
   "pytest-cov",
@@ -54,11 +67,11 @@ dependencies = [
 ]
 
 [tool.hatch.envs.default.scripts]
-ipykernel_install = "python -m ipykernel install --user --name phrasify --display-name \"Python (phrasify)\""
-nbstripout_install = "python -m nbstripout --install --attributes .gitattributes"
-site_packages_path = "python -c 'import sysconfig; print(sysconfig.get_paths()[\"purelib\"])'"
+install-ipykernel = "python -m ipykernel install --user --name phrasify --display-name \"Python (phrasify)\""
+install-nbstripout = "python -m nbstripout --install --attributes .gitattributes"
 
 [tool.hatch.envs.test]
+template = "template"
 dependencies = [
   "pytest",
   "pytest-cov",
@@ -71,29 +84,6 @@ cov = "pytest {args:tests} --cov --junitxml=junit/test-results.xml --cov-report 
 
 [[tool.hatch.envs.test.matrix]]
 python = ["3.8", "3.9", "3.10", "3.11"]
-
-[tool.hatch.envs.lint]
-detached = true
-dependencies = [
-  "black>=23.1.0",
-  "mypy>=1.0.0",
-  "ruff>=0.0.243",
-]
-[tool.hatch.envs.lint.scripts]
-typing = "mypy --install-types --non-interactive {args:src/phrasify tests}"
-style = [
-  "ruff {args:.}",
-  "black --check --diff {args:.}",
-]
-fmt = [
-  "black {args:.}",
-  "ruff --fix {args:.}",
-  "style",
-]
-all = [
-  "style",
-  "typing",
-]
 
 [tool.pytest.ini_options]
 markers = [
