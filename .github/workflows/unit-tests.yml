@@ -35,8 +35,6 @@ jobs:
       run: uv pip install --system -r requirements/test.py${{ matrix.python-version }}.txt 'phrasify @ .'
     - name: Test package
       run: pytest --cov --junitxml=junit/test-results.xml --cov-report term-missing --cov-report=xml --cov-report=html
-    # - name: Test package
-    #   run: PIP_COMPILE_DISABLE=1 hatch run +py=${{ matrix.python-version}} test:cov
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       env:
