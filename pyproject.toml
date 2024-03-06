@@ -54,6 +54,7 @@ site-packages-path = "python -c 'import sysconfig; print(sysconfig.get_paths()[\
 
 [tool.hatch.envs.default]
 template = "template"
+type = "pip-compile"
 dependencies = [
   "pytest",
   "pytest-cov",
