@@ -36,8 +36,8 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .hatch
-        key: ${{ runner.os }}-hatch-env-${{ hashFiles('pyproject.toml') }}
-        restore-keys: ${{ runner.os }}-hatch-env-
+        key: ${{ runner.os }}-${{ matrix.python-version }}-hatch-env-${{ hashFiles('pyproject.toml') }}
+        restore-keys: ${{ runner.os }}-${{ matrix.python-version }}-hatch-env-
     - name: Disable INIT_PHRASIFY_ADDON
       run: echo "INIT_PHRASIFY_ADDON=false" >> "$GITHUB_ENV"
     - name: Test package
