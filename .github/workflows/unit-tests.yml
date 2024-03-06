@@ -34,7 +34,7 @@ jobs:
     - name: Disable INIT_PHRASIFY_ADDON
       run: echo "INIT_PHRASIFY_ADDON=false" >> "$GITHUB_ENV"
     - name: Install dependencies
-      run: uv pip install --system -r requirements/test.py${{ matrix.python-version }}.txt .
+      run: uv pip install --system -r requirements/test.py${{ matrix.python-version }}.txt 'phrasify @ .'
     - name: Test package
       run: pytest --cov --junitxml=junit/test-results.xml --cov-report term-missing --cov-report=xml --cov-report=html
     # - name: Test package
