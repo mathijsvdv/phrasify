@@ -21,47 +21,23 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Setup Local Variables
-      id: variable-setup
-      run: |
-        echo "pipx-home=$PIPX_HOME" >> $GITHUB_OUTPUT
-        echo "pipx-bin-dir=$PIPX_BIN_DIR" >> $GITHUB_OUTPUT
-
-        export BASE64_PIPX_ID=$(echo -n 'hatch' | base64)
-        echo "cache-key-pipx=pipx-${{ matrix.os }}-$PIPX_DEFAULT_PYTHON-$BASE64_PIPX_ID" >> $GITHUB_OUTPUT
-      shell: bash
-
-    - name: Cache pipx
-      id: cache-pipx
-      uses: actions/cache@v3
-      with:
-        path: |
-          ${{ steps.variable-setup.outputs.pipx-home }}
-          ${{ steps.variable-setup.outputs.pipx-bin-dir }}
-        key: ${{ steps.variable-setup.outputs.cache-key-pipx }}
-
     - name: Install Hatch
-      run: pipx install hatch
-
-    - name: Ensure Pipx Paths
       run: |
-        pipx ensurepath
-        # Optionally check which packages were restored from the cache:
-        pipx list
-      shell: bash
+        pipx install hatch
+        hatch config set dirs.env.virtual .hatch
+        hatch config set dirs.env.pip-compile .hatch
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Set up pip cache
-      id: cache-pip
-      if: runner.os == 'Linux'
+    - name: Set up hatch env cache
+      id: cache-hatch-env
       uses: actions/cache@v3
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
-        restore-keys: ${{ runner.os }}-pip-
+        path: .hatch
+        key: ${{ runner.os }}-hatch-env-${{ hashFiles('pyproject.toml') }}
+        restore-keys: ${{ runner.os }}-hatch-env-
     - name: Disable INIT_PHRASIFY_ADDON
       run: echo "INIT_PHRASIFY_ADDON=false" >> "$GITHUB_ENV"
     - name: Test package
@@ -72,4 +48,4 @@ jobs:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     - name: Cache hit?
       run: echo "Cache hit"
-      if: steps.cache-pip.outputs.cache-hit == 'true'
+      if: steps.cache-hatch-env.outputs.cache-hit == 'true'
