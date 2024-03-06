@@ -22,6 +22,11 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    - uses: davidB/rust-cargo-make@v1
     - uses: actions/checkout@v3
     - name: Set up python
       uses: actions/setup-python@v5
