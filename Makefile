@@ -17,6 +17,14 @@ init:
 	hatch run ipykernel_install
 	hatch run nbstripout_install
 
+.PHONY: _test
+_test:
+	pytest tests
+
+.PHONY: _test_cov
+_test_cov:
+	pytest tests --cov --junitxml=junit/test-results.xml --cov-report term-missing --cov-report=xml --cov-report=html
+
 .PHONY: ankisync
 ankisync:
 	if [ ! -d ${ANKI_ADDON_PATH} ]; then \
