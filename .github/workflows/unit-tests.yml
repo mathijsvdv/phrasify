@@ -29,16 +29,16 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
-    - name: Cache dependencies
-      uses: actions/cache@v3.2.4
-      id: cache
-      with:
-        path: ${{ env.pythonLocation }}
-        key: ${{ env.pythonLocation }}-hatch==${{ env.hatch_version }}
+    # - name: Cache dependencies
+    #   uses: actions/cache@v3.2.4
+    #   id: cache
+    #   with:
+    #     path: ${{ env.pythonLocation }}
+    #     key: ${{ env.pythonLocation }}-hatch==${{ env.hatch_version }}
     # - name: View Python tree for debugging
     #   run: tree ${{ env.pythonLocation }}
     - name: Install Hatch
-      if: steps.cache.outputs.cache-hit != 'true'
+      # if: steps.cache.outputs.cache-hit != 'true'
       run: uv pip install hatch==${{ env.hatch_version }}
     - name: Disable INIT_PHRASIFY_ADDON
       run: echo "INIT_PHRASIFY_ADDON=false" >> "$GITHUB_ENV"
