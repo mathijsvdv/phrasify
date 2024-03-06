@@ -24,6 +24,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Set up pip cache
+      id: cache-pip
       if: runner.os == 'Linux'
       uses: actions/cache@v3
       with:
@@ -40,3 +41,6 @@ jobs:
       uses: codecov/codecov-action@v3
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    - name: Cache hit?
+      run: echo "Cache hit"
+      if: steps.cache-pip.outputs.cache-hit == 'true'
