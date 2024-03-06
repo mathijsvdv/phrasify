@@ -26,8 +26,6 @@ classifiers = [
 dependencies = [
   "requests>=2.31.0",
   "python-dotenv>=1.0.0",
-  "pandas",
-  "xarray"
 ]
 [project.optional-dependencies]
 anki = ["anki>=2.1.66", "aqt[qt6]>=2.1.66"]
