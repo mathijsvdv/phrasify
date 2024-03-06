@@ -9,6 +9,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  hatch_version: "1.9.3"
+
 jobs:
   test:
     strategy:
@@ -29,12 +32,12 @@ jobs:
       id: cache
       with:
         path: ${{ env.pythonLocation }}
-        key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
+        key: ${{ env.pythonLocation }}-hatch==${{ env.hatch_version }}
     - name: View Python tree for debugging
       run: tree ${{ env.pythonLocation }}
     - name: Install Hatch
       if: steps.cache.outputs.cache-hit != 'true'
-      run: pip install hatch
+      run: pip install hatch==${{ env.hatch_version }}
     - name: Disable INIT_PHRASIFY_ADDON
       run: echo "INIT_PHRASIFY_ADDON=false" >> "$GITHUB_ENV"
     - name: Test package
