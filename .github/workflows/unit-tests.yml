@@ -11,14 +11,45 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-
     strategy:
       matrix:
+        os: ["ubuntu-latest"]
         python-version: ["3.8", "3.9", "3.10", "3.11"]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: Setup Local Variables
+      id: variable-setup
+      run: |
+        echo "pipx-home=$PIPX_HOME" >> $GITHUB_OUTPUT
+        echo "pipx-bin-dir=$PIPX_BIN_DIR" >> $GITHUB_OUTPUT
+
+        export BASE64_PIPX_ID=$(echo -n 'hatch' | base64)
+        echo "cache-key-pipx=pipx-${{ matrix.os }}-$PIPX_DEFAULT_PYTHON-$BASE64_PIPX_ID" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Cache pipx
+      id: cache-pipx
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{ steps.variable-setup.outputs.pipx-home }}
+          ${{ steps.variable-setup.outputs.pipx-bin-dir }}
+        key: ${{ steps.variable-setup.outputs.cache-key-pipx }}
+
+    - name: Install Hatch
+      run: pipx install hatch
+
+    - name: Ensure Pipx Paths
+      run: |
+        pipx ensurepath
+        # Optionally check which packages were restored from the cache:
+        pipx list
+      shell: bash
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -31,8 +62,6 @@ jobs:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
         restore-keys: ${{ runner.os }}-pip-
-    - name: Install Hatch
-      run: pipx install hatch
     - name: Disable INIT_PHRASIFY_ADDON
       run: echo "INIT_PHRASIFY_ADDON=false" >> "$GITHUB_ENV"
     - name: Test package
