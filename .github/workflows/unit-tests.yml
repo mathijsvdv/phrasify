@@ -29,8 +29,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
-    # - name: Install Hatch
-    #   run: uv pip install --system hatch==${{ env.hatch_version }}
     - name: Disable INIT_PHRASIFY_ADDON
       run: echo "INIT_PHRASIFY_ADDON=false" >> "$GITHUB_ENV"
     - name: Install dependencies
