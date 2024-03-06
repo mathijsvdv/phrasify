@@ -30,7 +30,6 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install Hatch
-      # if: steps.cache.outputs.cache-hit != 'true'
       run: uv pip install --system hatch==${{ env.hatch_version }}
     - name: Disable INIT_PHRASIFY_ADDON
       run: echo "INIT_PHRASIFY_ADDON=false" >> "$GITHUB_ENV"
