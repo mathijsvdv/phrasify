@@ -23,14 +23,14 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    # - name: Set up pip cache
-    #   id: cache-pip
-    #   if: runner.os == 'Linux'
-    #   uses: actions/cache@v3
-    #   with:
-    #     path: ~/.cache/pip
-    #     key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
-    #     restore-keys: ${{ runner.os }}-pip-
+    - name: Set up pip cache
+      id: cache-pip
+      if: runner.os == 'Linux'
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+        restore-keys: ${{ runner.os }}-pip-
     - name: Install Hatch
       run: pipx install hatch
     - name: Disable INIT_PHRASIFY_ADDON
@@ -41,6 +41,6 @@ jobs:
       uses: codecov/codecov-action@v3
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    # - name: Cache hit?
-    #   run: echo "Cache hit"
-    #   if: steps.cache-pip.outputs.cache-hit == 'true'
+    - name: Cache hit?
+      run: echo "Cache hit"
+      if: steps.cache-pip.outputs.cache-hit == 'true'
