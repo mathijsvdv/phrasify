@@ -26,17 +26,12 @@ pluggy==1.4.0
     # via pytest
 pytest==8.0.2
     # via
-    #   hatch.envs.test.py3.9
     #   pytest-cov
     #   pytest-mock
 pytest-cov==4.1.0
-    # via hatch.envs.test.py3.9
 pytest-mock==3.12.0
-    # via hatch.envs.test.py3.9
 python-dotenv==1.0.1
-    # via hatch.envs.test.py3.9
 requests==2.31.0
-    # via hatch.envs.test.py3.9
 tomli==2.0.1
     # via
     #   coverage
