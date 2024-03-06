@@ -30,6 +30,8 @@ jobs:
       with:
         path: ${{ env.pythonLocation }}
         key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
+    - name: View Python tree for debugging
+      run: tree ${{ env.pythonLocation }}
     - name: Install Hatch
       if: steps.cache.outputs.cache-hit != 'true'
       run: pip install hatch
