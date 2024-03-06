@@ -85,6 +85,17 @@ cov = "pytest {args:tests} --cov --junitxml=junit/test-results.xml --cov-report 
 [[tool.hatch.envs.test.matrix]]
 python = ["3.8", "3.9", "3.10", "3.11"]
 
+[tool.hatch.envs.app]
+template = "template"
+dependencies = [
+  "fastapi",
+  "fastapi-versionizer",
+  "uvicorn",
+]
+
+[tool.hatch.envs.app.scripts]
+serve = "uvicorn src.phrasify_api.main:app --port 8800 --reload"
+
 [tool.pytest.ini_options]
 markers = [
   "slow: mark test as slow to run (deselect with '-m \"not slow\"')",

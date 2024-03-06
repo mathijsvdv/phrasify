@@ -55,7 +55,7 @@ clean:
 
 .PHONY: serve
 serve:
-	uvicorn src.phrasify_api.main:app --port $(CHAIN_API_PORT) --reload
+	hatch run app:serve
 
 .PHONY: docker_run
 docker_run:
