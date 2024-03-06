@@ -55,7 +55,7 @@ clean:
 
 .PHONY: serve
 serve:
-	hatch run app:serve
+	hatch run app:serve $(CHAIN_API_PORT)
 
 .PHONY: docker_run
 docker_run:
