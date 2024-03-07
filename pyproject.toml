@@ -83,7 +83,7 @@ dependencies = [
 
 [tool.hatch.envs.test.scripts]
 run = "just _test"
-cov = "just _test_cov"
+cov = "just _test-cov"
 
 [[tool.hatch.envs.test.matrix]]
 python = ["3.8", "3.9", "3.10", "3.11"]
