@@ -17,7 +17,7 @@ anki_path_default := if os() == "linux" {
 		echo "$(wslpath $(wslvar APPDATA))/Anki2";
 	else
 		# Linux
-		echo "$XDG_DATA_HOME/Anki2";
+		echo "~/.local/share/Anki2";
 	fi
 	```
 } else if os() == "windows" {
