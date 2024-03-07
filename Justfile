@@ -16,6 +16,7 @@ requirements := "charset_normalizer dotenv"
 anki_addon_copy_env := env("ANKI_ADDON_COPY_ENV", "prod")
 
 chain_api_port := env("CHAIN_API_PORT", "8800")
+serve_args := "--port " + chain_api_port
 image := env("IMAGE", "phrasify")
 k8s_env := env("K8S_ENV", "dev")
 
@@ -32,14 +33,14 @@ _install-ipykernel:
 
 # install the ipykernel for the virtual environment
 install-ipykernel:
-	hatch run ipykernel-install
+	hatch run install-ipykernel
 
 _install-nbstripout:
 	{{python}} -m nbstripout --install --attributes .gitattributes
 
 # install nbstripout for the virtual environment
 install-nbstripout:
-	hatch run nbstripout-install
+	hatch run install-nbstripout
 
 _site-packages-path:
 	#!{{python}}
@@ -110,8 +111,11 @@ clean:
 	rm -rf {{release_folder}}
 	rm -rf .nox
 
-serve port=chain_api_port:
-	hatch run app:serve --port {{port}}
+_serve *args=serve_args:
+	{{python}} -m uvicorn src.phrasify_api.main:app {{args}} --reload
+
+serve *args=serve_args:
+	hatch run app:serve {{args}}
 
 docker-build:
 	docker build -t mathijsvdv/{{image}} .

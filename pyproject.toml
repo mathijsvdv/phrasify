@@ -97,7 +97,7 @@ dependencies = [
 ]
 
 [tool.hatch.envs.app.scripts]
-serve = "uvicorn src.phrasify_api.main:app --port {args:8800} --reload"
+serve = "just _serve {args}"
 
 [tool.pytest.ini_options]
 markers = [
