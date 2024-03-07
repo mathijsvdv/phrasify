@@ -1,6 +1,6 @@
 set dotenv-load
 
-python := `which python`
+python := "python"
 
 anki_addon_name := env("ANKI_ADDON_NAME", "Phrasify")
 anki_addon_version := env("ANKI_ADDON_VERSION", "0.1.1")
@@ -8,8 +8,27 @@ package_name := env("PACKAGE_NAME", "phrasify")
 release_folder := env("RELEASE_FOLDER", "./releases")
 release_name := anki_addon_name + "-" + anki_addon_version
 
-win_appdata := `wslpath "$(wslvar APPDATA)"`
-anki_addons_path := env("ANKI_ADDONS_PATH", win_appdata / "Anki2" / "addons21")
+# Path to Anki folder - depends on OS
+# See https://docs.ankiweb.net/files.html?highlight=anki%20folder#file-locations
+anki_path_default := if os() == "linux" {
+	```
+	if uname -a | grep -q "microsoft"; then
+		# WSL
+		echo "$(wslpath $(wslvar APPDATA))/Anki2";
+	else
+		# Linux
+		echo "$XDG_DATA_HOME/Anki2";
+	fi
+	```
+} else if os() == "windows" {
+	replace(`echo "$APPDATA\Anki2"`, "\\", "/")
+} else if os() == "macos" {
+	`echo "~/Library/Application Support/Anki2"`
+} else {
+	""
+}
+anki_path := env("ANKI_PATH", anki_path_default)
+anki_addons_path := env("ANKI_ADDONS_PATH", anki_path / "addons21")
 anki_addon_path := anki_addons_path / package_name
 
 requirements := "charset_normalizer dotenv"
@@ -26,7 +45,14 @@ k8s_env := env("K8S_ENV", "dev")
 	just --evaluate
 
 @root:
-	echo {{justfile_directory()}}
+	echo "{{replace(justfile_directory(), "\\", "/")}}"
+
+@_site-packages-path:
+    {{python}} -c "import sysconfig; print(sysconfig.get_paths()['purelib'])"
+
+# get the path to the site-packages folder
+@site-packages-path:
+	hatch run site-packages-path
 
 _install-ipykernel:
 	{{python}} -m ipykernel install --user --name phrasify --display-name "Python (phrasify)"
@@ -41,15 +67,6 @@ _install-nbstripout:
 # install nbstripout for the virtual environment
 install-nbstripout:
 	hatch run install-nbstripout
-
-_site-packages-path:
-	#!{{python}}
-	import sysconfig
-	print(sysconfig.get_paths()['purelib'])
-
-# get the path to the site-packages folder
-@site-packages-path:
-	hatch run site-packages-path
 
 init:
 	pre-commit install
