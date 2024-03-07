@@ -1,6 +1,6 @@
 set dotenv-load
 
-python := "python"
+python := `which python`
 
 anki_addon_name := env("ANKI_ADDON_NAME", "Phrasify")
 anki_addon_version := env("ANKI_ADDON_VERSION", "0.1.1")
@@ -27,19 +27,28 @@ k8s_env := env("K8S_ENV", "dev")
 @root:
 	echo {{justfile_directory()}}
 
-# install the ipykernel for the virtual environment
-ipykernel-install:
+_install-ipykernel:
 	{{python}} -m ipykernel install --user --name phrasify --display-name "Python (phrasify)"
 
-# install nbstripout for the virtual environment
-nbstripout-install:
+# install the ipykernel for the virtual environment
+install-ipykernel:
+	hatch run ipykernel-install
+
+_install-nbstripout:
 	{{python}} -m nbstripout --install --attributes .gitattributes
 
-# get the path to the site-packages folder
-site-packages-path:
+# install nbstripout for the virtual environment
+install-nbstripout:
+	hatch run nbstripout-install
+
+_site-packages-path:
 	#!{{python}}
 	import sysconfig
 	print(sysconfig.get_paths()['purelib'])
+
+# get the path to the site-packages folder
+@site-packages-path:
+	hatch run site-packages-path
 
 venv:
 	rye sync --features api
@@ -103,7 +112,6 @@ clean:
 
 serve port=chain_api_port:
 	hatch run app:serve --port {{port}}
-	{{python}} -m uvicorn src.phrasify_api.main:app --port {{chain_api_port}} --reload
 
 docker-build:
 	docker build -t mathijsvdv/{{image}} .
