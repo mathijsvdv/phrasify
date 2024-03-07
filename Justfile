@@ -47,6 +47,9 @@ k8s_env := env("K8S_ENV", "dev")
 @root:
 	echo "{{replace(justfile_directory(), "\\", "/")}}"
 
+@python-version level="3":
+	{{python}} -c "import sys; print('.'.join(map(str, sys.version_info[:{{level}}])))"
+
 @_site-packages-path:
     {{python}} -c "import sysconfig; print(sysconfig.get_paths()['purelib'])"
 
@@ -99,10 +102,10 @@ ankienv copy_env=anki_addon_copy_env addon_path=anki_addon_path:
 ankidev: ankisync ankimeta ankienv
 
 _test *args="tests":
-	{{python}} -m pytest {{args}}
+	INIT_PHRASIFY_ADDON=false {{python}} -m pytest {{args}}
 
 _test-cov *args="tests":
-	{{python}} -m pytest {{args}} --cov --cov-report term-missing --cov-report=xml --cov-report=html --junitxml=junit/test-results.xml
+	INIT_PHRASIFY_ADDON=false {{python}} -m pytest {{args}} --cov --cov-report term-missing --cov-report=xml --cov-report=html --junitxml=junit/test-results.xml
 
 # Run the tests
 test:
@@ -111,6 +114,12 @@ test:
 # Run the tests and generate a coverage report
 test-cov:
 	hatch run test:cov
+
+_uv-pip-install-test system_flag="":
+	uv pip install {{system_flag}} -r requirements/test.py$(just python-version 2).txt 'phrasify @ .'
+
+# Run the tests in CI while using UV to install the requirements. When testing it locally, be sure to create a virtual environment and activate it before running the tests
+ci-test system_flag="": (_uv-pip-install-test system_flag) _test-cov
 
 # Build the Anki addon
 build addon_path=(release_folder / release_name): (ankisync addon_path)

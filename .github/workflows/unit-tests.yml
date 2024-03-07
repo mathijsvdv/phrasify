@@ -33,12 +33,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Set up uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
-    - name: Disable INIT_PHRASIFY_ADDON
-      run: echo "INIT_PHRASIFY_ADDON=false" >> "$GITHUB_ENV"
-    - name: Install dependencies
-      run: uv pip install --system -r requirements/test.py${{ matrix.python-version }}.txt 'phrasify @ .'
     - name: Test package
-      run: just _test-cov
+      run: just ci-test --system
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       env:
