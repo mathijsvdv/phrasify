@@ -50,7 +50,7 @@ lock-filename = "requirements/{env_name}.txt"
 python = "3.9"
 
 [tool.hatch.envs.template.scripts]
-site-packages-path = "python -c 'import sysconfig; print(sysconfig.get_paths()[\"purelib\"])'"
+site-packages-path = "just _site-packages-path"
 
 [tool.hatch.envs.default]
 template = "template"
@@ -70,8 +70,8 @@ dependencies = [
 ]
 
 [tool.hatch.envs.default.scripts]
-install-ipykernel = "python -m ipykernel install --user --name phrasify --display-name \"Python (phrasify)\""
-install-nbstripout = "python -m nbstripout --install --attributes .gitattributes"
+install-ipykernel = "just _install-ipykernel"
+install-nbstripout = "just _install-nbstripout"
 
 [tool.hatch.envs.test]
 template = "template"
@@ -82,8 +82,8 @@ dependencies = [
 ]
 
 [tool.hatch.envs.test.scripts]
-run = "make _test"
-cov = "make _test_cov"
+run = "just _test"
+cov = "just _test-cov"
 
 [[tool.hatch.envs.test.matrix]]
 python = ["3.8", "3.9", "3.10", "3.11"]
@@ -97,7 +97,7 @@ dependencies = [
 ]
 
 [tool.hatch.envs.app.scripts]
-serve = "uvicorn src.phrasify_api.main:app --port {args:8800} --reload"
+serve = "just _serve {args}"
 
 [tool.pytest.ini_options]
 markers = [

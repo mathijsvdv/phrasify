@@ -23,18 +23,26 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    # - name: Set up just
+    #   uses: extractions/setup-just@v2
+    #   with:
+    #     just-version: "1.24.0"
+    - name: Set up just
+      uses: taiki-e/install-action@v2
+      with:
+        tool: just@1.24.0
     - name: Set up python
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install uv
+    - name: Set up uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Disable INIT_PHRASIFY_ADDON
       run: echo "INIT_PHRASIFY_ADDON=false" >> "$GITHUB_ENV"
     - name: Install dependencies
       run: uv pip install --system -r requirements/test.py${{ matrix.python-version }}.txt 'phrasify @ .'
     - name: Test package
-      run: make _test_cov
+      run: just _test-cov
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       env:
