@@ -15,8 +15,8 @@ anki_addon_path := anki_addons_path / package_name
 requirements := "charset_normalizer dotenv"
 anki_addon_copy_env := env("ANKI_ADDON_COPY_ENV", "prod")
 
-chain_api_port := env("CHAIN_API_PORT", "8800")
-serve_args := "--port " + chain_api_port
+api_port := env("API_PORT", "8800")
+serve_args := "--port " + api_port
 image := env("IMAGE", "phrasify")
 k8s_env := env("K8S_ENV", "dev")
 
@@ -147,5 +147,5 @@ undeploy:
 undeploy-ollama:
 	kubectl delete -f ./k8s/apps/ollama.yaml
 
-health-local port=chain_api_port:
+health-local port=api_port:
 	curl -X GET "http://localhost:{{port}}/health"
