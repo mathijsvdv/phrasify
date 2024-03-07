@@ -115,11 +115,10 @@ test:
 test-cov:
 	hatch run test:cov
 
-_uv-pip-install-test system_flag="":
-	uv pip install {{system_flag}} -r requirements/test.py$(just python-version 2).txt 'phrasify @ .'
-
-# Run the tests in CI while using UV to install the requirements. When testing it locally, be sure to create and activate a virtual environment through `uv venv && source .venv/bin/activate` before running the tests
-ci-test system_flag="": (_uv-pip-install-test system_flag) _test-cov
+# Run the tests in CI while using UV to install the requirements. Be sure to keep
+# the `system_flag` empty when running the tests locally
+ci-test system_flag="":
+	bash ./scripts/ci-test.sh {{system_flag}}
 
 # Build the Anki addon
 build addon_path=(release_folder / release_name): (ankisync addon_path)
