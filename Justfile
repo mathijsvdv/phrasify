@@ -51,15 +51,12 @@ _site-packages-path:
 @site-packages-path:
 	hatch run site-packages-path
 
-venv:
-	rye sync --features api
-
-init: venv
+init:
 	pre-commit install
 	pre-commit install --hook-type commit-msg
 	pre-commit autoupdate
-	just ipykernel-install
-	just nbstripout-install
+	just install-ipykernel
+	just install-nbstripout
 
 ankisync addon_path=anki_addon_path:
 	if [ ! -d {{addon_path}} ]; then \

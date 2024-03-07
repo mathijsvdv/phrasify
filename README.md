@@ -90,7 +90,7 @@ hatch config set dirs.env.virtual .direnv
 
 To set up the virtual environment along with pre-commit hooks and jupyter notebooks, run:
 ```bash
-make init
+just init
 ```
 
 To activate the virtual environment, run:
@@ -129,7 +129,7 @@ hatch run test:cov
 ### Applying the current code to your Anki installation
 To apply the current development code to your Anki installation, run:
 ```bash
-make ankidev
+just ankidev
 ```
 
 This copies the current code to your Anki add-ons folder. You can then restart Anki to see the changes.
