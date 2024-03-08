@@ -120,8 +120,8 @@ test:
 test-cov:
 	hatch run test:cov
 
-_uv-venv system_flag="":
-	if [ ! -d .venv ] && [ "{{system_flag}}" != "--system" ]; then \
+_uv-venv:
+	if [ ! -d .venv ]; then \
 		uv venv; \
 	fi
 
