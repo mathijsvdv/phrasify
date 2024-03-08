@@ -1,6 +1,10 @@
 set dotenv-load
 
 python := "python"
+_uv_windows_activate := ".venv\\Scripts\\activate"
+_uv_unix_activate := "source .venv/bin/activate"
+_uv_windows_python := ".venv\\Scripts\\python.exe"
+_uv_unix_python := ".venv/bin/python"
 
 anki_addon_name := env("ANKI_ADDON_NAME", "Phrasify")
 anki_addon_version := env("ANKI_ADDON_VERSION", "0.1.1")
@@ -105,6 +109,7 @@ _test *args="tests":
 	INIT_PHRASIFY_ADDON=false {{python}} -m pytest {{args}}
 
 _test-cov *args="tests":
+	echo "Python used for _test-cov: $(which python)"
 	INIT_PHRASIFY_ADDON=false {{python}} -m pytest {{args}} --cov --cov-report term-missing --cov-report=xml --cov-report=html --junitxml=junit/test-results.xml
 
 # Run the tests
@@ -115,10 +120,38 @@ test:
 test-cov:
 	hatch run test:cov
 
+_uv-venv system_flag="":
+	if [ ! -d .venv ] && [ "{{system_flag}}" != "--system" ]; then \
+		uv venv; \
+	fi
+
+_uv-pip-install-test system_flag="":
+	echo "Python used during install: $(which python)" && \
+	uv pip install {{system_flag}} -r requirements/test.py$(just python-version 2).txt 'phrasify @ .'
+
+_ci-test system_flag="":
+	just _uv-pip-install-test "{{system_flag}}"
+	just _test-cov
+
 # Run the tests in CI while using UV to install the requirements. Be sure to keep
 # the `system_flag` empty when running the tests locally
-ci-test system_flag="":
-	bash ./scripts/ci-test.sh {{system_flag}}
+[unix]
+ci-test system_flag="": (_uv-venv system_flag)
+	#!/bin/bash
+	if [ "{{system_flag}}" != "--system" ]; then
+		{{_uv_unix_activate}}
+	fi
+
+	just _ci-test "{{system_flag}}"
+
+[windows]
+ci-test system_flag="": (_uv-venv system_flag)
+	#!/bin/sh
+	if [ "{{system_flag}}" != "--system" ]; then
+		{{_uv_windows_activate}}
+	fi
+
+	just _ci-test "{{system_flag}}"
 
 # Build the Anki addon
 build addon_path=(release_folder / release_name): (ankisync addon_path)
