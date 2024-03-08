@@ -5,35 +5,11 @@ _uv_windows_activate := ".venv\\Scripts\\activate"
 _uv_unix_activate := "source .venv/bin/activate"
 _uv_windows_python := ".venv\\Scripts\\python.exe"
 _uv_unix_python := ".venv/bin/python"
-
 anki_addon_name := env("ANKI_ADDON_NAME", "Phrasify")
 anki_addon_version := env("ANKI_ADDON_VERSION", "0.1.1")
 package_name := env("PACKAGE_NAME", "phrasify")
 release_folder := env("RELEASE_FOLDER", "./releases")
 release_name := anki_addon_name + "-" + anki_addon_version
-
-# Path to Anki folder - depends on OS
-# See https://docs.ankiweb.net/files.html?highlight=anki%20folder#file-locations
-anki_path_default := if os() == "linux" {
-	```
-	if uname -a | grep -q "microsoft"; then
-		# WSL
-		echo "$(wslpath $(wslvar APPDATA))/Anki2";
-	else
-		# Linux
-		echo "~/.local/share/Anki2";
-	fi
-	```
-} else if os() == "windows" {
-	replace(`echo "$APPDATA\Anki2"`, "\\", "/")
-} else if os() == "macos" {
-	`echo "~/Library/Application Support/Anki2"`
-} else {
-	""
-}
-anki_path := env("ANKI_PATH", anki_path_default)
-anki_addons_path := env("ANKI_ADDONS_PATH", anki_path / "addons21")
-anki_addon_path := anki_addons_path / package_name
 
 requirements := "charset_normalizer dotenv"
 anki_addon_copy_env := env("ANKI_ADDON_COPY_ENV", "prod")
@@ -42,6 +18,45 @@ api_port := env("API_PORT", "8800")
 serve_args := "--port " + api_port
 image := env("IMAGE", "phrasify")
 k8s_env := env("K8S_ENV", "dev")
+
+# Path to Anki folder - depends on OS
+# See https://docs.ankiweb.net/files.html?highlight=anki%20folder#file-locations
+[linux]
+@_anki-path:
+	if uname -a | grep -q "microsoft"; then \
+		echo "$(wslpath $(wslvar APPDATA))/Anki2"; \
+	else \
+		echo "~/.local/share/Anki2"; \
+	fi
+
+[windows]
+@_anki-path:
+	echo "$APPDATA\Anki2" | tr "\\" "/"
+
+[macos]
+@_anki-path:
+	echo "~/Library/Application Support/Anki2"
+
+@anki-path:
+	if [ -z ${ANKI_PATH+x} ]; then \
+		echo "$(just _anki-path)"; \
+	else \
+		echo $ANKI_PATH; \
+	fi
+
+@anki-addons-path:
+	if [ -z ${ANKI_ADDONS_PATH+x} ]; then \
+		echo "$(just anki-path)/addons21"; \
+	else \
+		echo $ANKI_ADDONS_PATH; \
+	fi
+
+@anki-addon-path:
+	if [ -z ${ANKI_ADDON_PATH+x} ]; then \
+		echo "$(just anki-addons-path)/{{package_name}}"; \
+	else \
+		echo $ANKI_ADDON_PATH; \
+	fi
 
 @_default:
 	just --list
@@ -82,7 +97,7 @@ init:
 	just install-ipykernel
 	just install-nbstripout
 
-ankisync addon_path=anki_addon_path:
+ankisync addon_path=`just anki-addon-path`:
 	if [ ! -d {{addon_path}} ]; then \
 		mkdir -p {{addon_path}}; \
 	fi
@@ -95,10 +110,10 @@ ankisync addon_path=anki_addon_path:
 		--exclude ".env" --exclude ".env.*"; \
 	done
 
-ankimeta addon_path=anki_addon_path:
+ankimeta addon_path=`just anki-addon-path`:
 	cp -f ./src/phrasify/meta.json {{addon_path}}/meta.json
 
-ankienv copy_env=anki_addon_copy_env addon_path=anki_addon_path:
+ankienv copy_env=anki_addon_copy_env addon_path=`just anki-addon-path`:
 	if [ {{copy_env}} != "" ]; then \
 		cp -f ./src/phrasify/user_files/.env.{{copy_env}} {{addon_path}}/user_files/.env; \
 	fi
@@ -109,7 +124,6 @@ _test *args="tests":
 	INIT_PHRASIFY_ADDON=false {{python}} -m pytest {{args}}
 
 _test-cov *args="tests":
-	echo "Python used for _test-cov: $(which python)"
 	INIT_PHRASIFY_ADDON=false {{python}} -m pytest {{args}} --cov --cov-report term-missing --cov-report=xml --cov-report=html --junitxml=junit/test-results.xml
 
 # Run the tests
