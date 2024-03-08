@@ -1,10 +1,7 @@
 set dotenv-load
 
 python := "python"
-_uv_windows_activate := ".venv\\Scripts\\activate"
-_uv_unix_activate := "source .venv/bin/activate"
-_uv_windows_python := ".venv\\Scripts\\python.exe"
-_uv_unix_python := ".venv/bin/python"
+_uv_python := if os() == "windows" { ".venv\\Scripts\\python.exe" } else { ".venv/bin/python" }
 anki_addon_name := env("ANKI_ADDON_NAME", "Phrasify")
 anki_addon_version := env("ANKI_ADDON_VERSION", "0.1.1")
 package_name := env("PACKAGE_NAME", "phrasify")
@@ -141,30 +138,21 @@ _uv-venv:
 
 _uv-pip-install-test system_flag="":
 	echo "Python used during install: $(which python)" && \
-	uv pip install {{system_flag}} -r requirements/test.py$(just python-version 2).txt 'phrasify @ .'
+	uv pip install --python={{python}} {{system_flag}} -r requirements/test.py$(just python-version 2).txt 'phrasify @ .'
 
 _ci-test system_flag="":
-	just _uv-pip-install-test "{{system_flag}}"
-	just _test-cov
+	just python={{python}} _uv-pip-install-test "{{system_flag}}"
+	just python={{python}} _test-cov
 
-[unix]
 _ci-test-in-venv: _uv-venv
-	#!/bin/bash
-	{{_uv_unix_activate}}
-	just _ci-test
-
-[windows]
-_ci-test-in-venv: _uv-venv
-	#!/bin/sh
-	{{_uv_windows_activate}}
-	just _ci-test
+	just python={{python}} _ci-test
 
 # Run the tests in CI while using UV to install the requirements. Be sure to keep the `system_flag` empty when running the tests locally
 ci-test system_flag="":
 	if [ "{{system_flag}}" = "--system" ]; then \
-		just _ci-test "{{system_flag}}"; \
+		just python={{python}} _ci-test "{{system_flag}}"; \
 	else \
-		just _ci-test-in-venv; \
+		just python={{_uv_python}} _ci-test-in-venv; \
 	fi
 
 # Build the Anki addon
