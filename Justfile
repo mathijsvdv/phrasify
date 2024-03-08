@@ -137,7 +137,6 @@ _uv-venv:
 	fi
 
 _uv-pip-install-test system_flag="":
-	echo "Python used during install: $(which python)" && \
 	uv pip install --python={{python}} {{system_flag}} -r requirements/test.py$(just python-version 2).txt 'phrasify @ .'
 
 _ci-test system_flag="":
