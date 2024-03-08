@@ -139,12 +139,9 @@ _uv-venv:
 _uv-pip-install-test system_flag="":
 	uv pip install --python={{python}} {{system_flag}} -r requirements/test.py$(just python-version 2).txt 'phrasify @ .'
 
-_ci-test system_flag="":
-	just python={{python}} _uv-pip-install-test "{{system_flag}}"
-	just python={{python}} _test-cov
+_ci-test system_flag="": (_uv-pip-install-test system_flag) (_test-cov)
 
-_ci-test-in-venv: _uv-venv
-	just python={{python}} _ci-test
+_ci-test-in-venv: _uv-venv _ci-test
 
 # Run the tests in CI while using UV to install the requirements. Be sure to keep the `system_flag` empty when running the tests locally
 ci-test system_flag="":
