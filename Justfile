@@ -113,12 +113,12 @@ ankisync addon_path=`just anki-addon-path`:
 ankimeta addon_path=`just anki-addon-path`:
 	cp -f ./src/phrasify/meta.json {{addon_path}}/meta.json
 
-ankienv copy_env=anki_addon_copy_env addon_path=`just anki-addon-path`:
+ankienv addon_path=`just anki-addon-path` copy_env=anki_addon_copy_env:
 	if [ {{copy_env}} != "" ]; then \
 		cp -f ./src/phrasify/user_files/.env.{{copy_env}} {{addon_path}}/user_files/.env; \
 	fi
 
-ankidev: ankisync ankimeta ankienv
+ankidev addon_path=`just anki-addon-path`: (ankisync addon_path) (ankimeta addon_path) (ankienv addon_path)
 
 _test *args="tests":
 	INIT_PHRASIFY_ADDON=false {{python}} -m pytest {{args}}
