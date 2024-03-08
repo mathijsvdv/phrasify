@@ -137,7 +137,12 @@ _uv-venv:
 	fi
 
 _uv-pip-install-test system_flag="":
-	uv pip install --python={{python}} {{system_flag}} -r requirements/test.py$(just python-version 2).txt 'phrasify @ .'
+	if [ "{{system_flag}}" = "--system" ]; then \
+		flag="{{system_flag}}"; \
+	else \
+		flag="--python={{python}}"; \
+	fi; \
+	uv pip install $flag -r requirements/test.py$(just python-version 2).txt 'phrasify @ .'
 
 _ci-test system_flag="": (_uv-pip-install-test system_flag) (_test-cov)
 
