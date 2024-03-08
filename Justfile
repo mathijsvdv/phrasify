@@ -133,25 +133,25 @@ _ci-test system_flag="":
 	just _uv-pip-install-test "{{system_flag}}"
 	just _test-cov
 
-# Run the tests in CI while using UV to install the requirements. Be sure to keep
-# the `system_flag` empty when running the tests locally
 [unix]
-ci-test system_flag="": (_uv-venv system_flag)
+_ci-test-in-venv: _uv-venv
 	#!/bin/bash
-	if [ "{{system_flag}}" != "--system" ]; then
-		{{_uv_unix_activate}}
-	fi
-
-	just _ci-test "{{system_flag}}"
+	{{_uv_unix_activate}}
+	just _ci-test
 
 [windows]
-ci-test system_flag="": (_uv-venv system_flag)
+_ci-test-in-venv: _uv-venv
 	#!/bin/sh
-	if [ "{{system_flag}}" != "--system" ]; then
-		{{_uv_windows_activate}}
-	fi
+	{{_uv_windows_activate}}
+	just _ci-test
 
-	just _ci-test "{{system_flag}}"
+# Run the tests in CI while using UV to install the requirements. Be sure to keep the `system_flag` empty when running the tests locally
+ci-test system_flag="":
+	if [ "{{system_flag}}" = "--system" ]; then \
+		just _ci-test "{{system_flag}}"; \
+	else \
+		just _ci-test-in-venv; \
+	fi
 
 # Build the Anki addon
 build addon_path=(release_folder / release_name): (ankisync addon_path)
