@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import Mapping, Protocol
+from typing import Mapping, Optional, Protocol
 
 from ..card import TranslationCard
 from ..card_gen import (
@@ -110,7 +110,7 @@ class PhrasifyFilter:
 
 def create_phrasify_filter(
     config: PhrasifyFilterConfig,
-    card_factory_creator: CardFactoryCreator | None = None,
+    card_factory_creator: Optional[CardFactoryCreator] = None,
 ):
     """Create a PhrasifyFilter from the config."""
     if card_factory_creator is None:
@@ -166,7 +166,7 @@ def phrasify_filter(
     field_name: str,
     filter_name: str,
     context: HasNote,
-    card_factory_creator: CardFactoryCreator | None = None,
+    card_factory_creator: Optional[CardFactoryCreator] = None,
 ) -> str:
     """Filter that generates the front or back of a language card from the front text
 
