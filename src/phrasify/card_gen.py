@@ -3,7 +3,7 @@ import re
 from collections import deque
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
-from typing import Any, Callable, Deque, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Deque, Dict, Iterable, Iterator, List, Optional, Union
 
 import requests
 
@@ -296,7 +296,7 @@ class JSONCachedCardGenerator:
         with open(cache_path, "w") as f:
             json.dump(list(cards), f, cls=TranslationCardEncoder)
 
-    def __call__(self, card: TranslationCard) -> List[TranslationCard]:
+    def __call__(self, card: TranslationCard) -> Iterator[TranslationCard]:
         """Generate language cards from the front text inserted into a prompt."""
         cards = self.get_from_cache(card)
         logger.debug(f"Retrieving {len(cards)} cards from cache for card {card}")
