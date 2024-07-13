@@ -158,14 +158,6 @@ class LLMTranslationCardGenerator:
     source_language: str
     target_language: str
 
-    def _get_chain_inputs(self, card: TranslationCard) -> LLMChainInput:
-        return {
-            "n_cards": self.n_cards,
-            "source_language": self.source_language,
-            "target_language": self.target_language,
-            "card": card,
-        }
-
     @classmethod
     def from_config(cls, config: CardGeneratorConfig) -> "LLMTranslationCardGenerator":
         """Create an LLMTranslationCardGenerator from a config."""
@@ -179,30 +171,80 @@ class LLMTranslationCardGenerator:
             target_language=config.target_language,
         )
 
-    def __call__(self, card: TranslationCard) -> List[TranslationCard]:
-        """Generate multiple translation cards from an input card inserted into a
-        prompt."""
+    def _get_chain_inputs(self, card: TranslationCard, n_cards: int) -> LLMChainInput:
+        return {
+            "n_cards": n_cards,
+            "source_language": self.source_language,
+            "target_language": self.target_language,
+            "card": card,
+        }
+
+    def _log_generating_cards(self, card: TranslationCard):
+        """Log that we are generating cards for the given card."""
         logger.debug(
             f"{self.__class__.__name__} generating {self.n_cards} cards "
             f"from card {card!r}, using chain {self.chain}"
         )
-        if self.n_cards == 0:
-            return []
 
-        chain_inputs = self._get_chain_inputs(card)
-        try:
-            response = self.chain(chain_inputs)
-        except ChainError as e:
-            msg = f"Error generating card using chain inputs: {chain_inputs}"
-            raise CardGenerationError(msg) from e
-
+    def _log_response_from_chain(self, response: str):
         logger.debug(f"Response from chain: {response}")
 
+    def _parse_translation_card_response(self, response: str):
         try:
             cards = _parse_translation_card_response(response)
         except LLMParsingError as e:
             msg = f"Error parsing response from chain: {response}"
             raise CardGenerationError(msg) from e
+
+        return cards
+
+    def _raise_card_generation_error(self, error: ChainError, chain_inputs):
+        msg = f"Error generating card using chain inputs: {chain_inputs}"
+        raise CardGenerationError(msg) from error
+
+    def __call__(
+        self, card: TranslationCard, n_cards: Optional[int] = None
+    ) -> List[TranslationCard]:
+        """Generate multiple translation cards from an input card inserted into a
+        prompt."""
+        self._log_generating_cards(card)
+
+        if n_cards is None:
+            n_cards = self.n_cards
+
+        if n_cards == 0:
+            return []
+
+        chain_inputs = self._get_chain_inputs(card, n_cards=n_cards)
+        try:
+            response = self.chain(chain_inputs)
+        except ChainError as e:
+            self._raise_card_generation_error(e, chain_inputs=chain_inputs)
+
+        self._log_response_from_chain(response)
+        cards = self._parse_translation_card_response(response)
+
+        return cards
+
+    async def acall(
+        self, card: TranslationCard, n_cards: Optional[int] = None
+    ) -> List[TranslationCard]:
+        self._log_generating_cards(card)
+
+        if n_cards is None:
+            n_cards = self.n_cards
+
+        if n_cards == 0:
+            return []
+
+        chain_inputs = self._get_chain_inputs(card, n_cards=n_cards)
+        try:
+            response = await self.chain.acall(chain_inputs)
+        except ChainError as e:
+            self._raise_card_generation_error(e, chain_inputs=chain_inputs)
+
+        self._log_response_from_chain(response)
+        cards = self._parse_translation_card_response(response)
 
         return cards
 
