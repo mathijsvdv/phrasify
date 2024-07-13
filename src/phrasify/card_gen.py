@@ -378,6 +378,14 @@ class JSONCachedCardGenerator:
 
             yield new_card
 
+    def __call__(self, card: TranslationCard) -> Iterator[TranslationCard]:
+        """Generate language cards from the front text inserted into a prompt."""
+        card_iterator = iter(self.acall(card))
+        loop = asyncio.get_event_loop()
+        while True:
+            new_card = loop.run_until_complete(card_iterator.__anext__())
+            yield new_card
+
 
 class NextCardFactory(CardFactory):
     """Can be called to take the next language card from a card generator."""
