@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from collections import deque
@@ -338,27 +339,42 @@ class JSONCachedCardGenerator:
         with open(cache_path, "w") as f:
             json.dump(list(cards), f, cls=TranslationCardEncoder)
 
-    def __call__(self, card: TranslationCard) -> Iterator[TranslationCard]:
+    async def acall(self, card: TranslationCard) -> Iterator[TranslationCard]:
         """Generate language cards from the front text inserted into a prompt."""
         cards = self.get_from_cache(card)
         logger.debug(f"Retrieving {len(cards)} cards from cache for card {card}")
 
+        tasks = set()
         while True:
             if len(cards) < self.min_cards:
                 logger.debug(
                     f"Cache has {len(cards)} < {self.min_cards} cards, "
                     f"generating more for card {card}"
                 )
-                new_cards = self.card_generator(card)
-                cards.extend(new_cards)
-                logger.debug(
-                    f"Extended cache with {len(new_cards)} new cards "
-                    f"for field text {card}"
-                )
+                get_n_cards = asyncio.create_task(self.card_generator.acall(card))
+                tasks.add(get_n_cards)
+                get_n_cards.add_done_callback(tasks.discard)
 
-            new_card = cards.popleft()
-            self.write_to_cache(card, cards)
-            yield new_card
+            if len(cards) == 0:
+                logger.debug("No more cards in cache, generating one card")
+                get_1_card = asyncio.create_task(
+                    self.card_generator.acall(card, n_cards=1)
+                )
+                tasks.add(get_1_card)
+                get_1_card.add_done_callback(tasks.discard)
+
+            done, pending = await asyncio.wait(
+                tasks, return_when=asyncio.FIRST_COMPLETED
+            )
+            for task in done:
+                new_cards = task.result()
+                cards.extend(new_cards)
+                new_card = cards.popleft()
+                self.write_to_cache(card, cards)
+                logger.debug(
+                    f"Extended cache with {len(new_cards)} new cards for card {card}"
+                )
+                yield new_card
 
 
 class NextCardFactory(CardFactory):
