@@ -1,3 +1,5 @@
+import asyncio
+import time
 from functools import lru_cache
 from typing import Callable, Mapping, TypeVar
 
@@ -30,11 +32,12 @@ class CountingCardGenerator:
     It keeps track of how often it was called in order to test that ` lru_cache` works.
     """
 
-    def __init__(self, n_cards: int = 1):
+    def __init__(self, n_cards: int = 1, sleep_interval: float = 0.0):
         self.n_cards = n_cards
+        self.sleep_interval = sleep_interval
         self.n_times_called = 0
 
-    def __call__(self, card: TranslationCard):
+    def _call(self, card: TranslationCard):
         self.n_times_called += 1
         source = f"Source of card for {card} after {self.n_times_called} call(s)"
         target = f"Target of card for {card} after {self.n_times_called} call(s)"
@@ -45,6 +48,18 @@ class CountingCardGenerator:
             )
             for i in range(self.n_cards)
         ]
+
+    async def acall(self, card: TranslationCard):
+        if self.sleep_interval > 0.0:
+            await asyncio.sleep(self.sleep_interval * self.n_cards)
+
+        return self._call(card)
+
+    def __call__(self, card: TranslationCard):
+        if self.sleep_interval > 0.0:
+            time.sleep(self.sleep_interval * self.n_cards)
+
+        return self._call(card)
 
 
 class EmptyCardGenerator:
