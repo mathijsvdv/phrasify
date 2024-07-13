@@ -3,7 +3,7 @@ import json
 import re
 from collections import deque
 from dataclasses import asdict, dataclass, field
-from functools import lru_cache
+from functools import lru_cache, partial
 from typing import Any, Callable, Deque, Dict, Iterable, Iterator, List, Optional, Union
 
 import requests
@@ -339,12 +339,21 @@ class JSONCachedCardGenerator:
         with open(cache_path, "w") as f:
             json.dump(list(cards), f, cls=TranslationCardEncoder)
 
+    def task_write_to_cache(
+        self, card: TranslationCard, cards: Iterable[TranslationCard], task
+    ):
+        new_cards = task.result()
+        cards.extend(new_cards)
+        self.write_to_cache(card, cards)
+        logger.debug(f"Extended cache with {len(new_cards)} new cards for card {card}")
+
     async def acall(self, card: TranslationCard) -> Iterator[TranslationCard]:
         """Generate language cards from the front text inserted into a prompt."""
         cards = self.get_from_cache(card)
         logger.debug(f"Retrieving {len(cards)} cards from cache for card {card}")
 
         tasks = set()
+        task_write_to_cache = partial(self.task_write_to_cache, card, cards)
         while True:
             if len(cards) < self.min_cards:
                 logger.debug(
@@ -354,6 +363,7 @@ class JSONCachedCardGenerator:
                 get_n_cards = asyncio.create_task(self.card_generator.acall(card))
                 tasks.add(get_n_cards)
                 get_n_cards.add_done_callback(tasks.discard)
+                get_n_cards.add_done_callback(task_write_to_cache)
 
             if len(cards) == 0:
                 logger.debug("No more cards in cache, generating one card to be quick")
@@ -362,16 +372,9 @@ class JSONCachedCardGenerator:
                 )
                 tasks.add(get_1_card)
                 get_1_card.add_done_callback(tasks.discard)
+                get_1_card.add_done_callback(task_write_to_cache)
 
-            done, pending = await asyncio.wait(
-                tasks, return_when=asyncio.FIRST_COMPLETED
-            )
-            for task in done:
-                new_cards = task.result()
-                cards.extend(new_cards)
-                logger.debug(
-                    f"Extended cache with {len(new_cards)} new cards for card {card}"
-                )
+            await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
             new_card = cards.popleft()
             self.write_to_cache(card, cards)
