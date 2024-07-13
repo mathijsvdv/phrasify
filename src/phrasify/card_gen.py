@@ -369,12 +369,14 @@ class JSONCachedCardGenerator:
             for task in done:
                 new_cards = task.result()
                 cards.extend(new_cards)
-                new_card = cards.popleft()
-                self.write_to_cache(card, cards)
                 logger.debug(
                     f"Extended cache with {len(new_cards)} new cards for card {card}"
                 )
-                yield new_card
+
+            new_card = cards.popleft()
+            self.write_to_cache(card, cards)
+
+            yield new_card
 
 
 class NextCardFactory(CardFactory):
