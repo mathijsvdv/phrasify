@@ -356,7 +356,7 @@ class JSONCachedCardGenerator:
                 get_n_cards.add_done_callback(tasks.discard)
 
             if len(cards) == 0:
-                logger.debug("No more cards in cache, generating one card")
+                logger.debug("No more cards in cache, generating one card to be quick")
                 get_1_card = asyncio.create_task(
                     self.card_generator.acall(card, n_cards=1)
                 )
