@@ -25,6 +25,7 @@ classifiers = [
 ]
 dependencies = [
   "requests>=2.31.0",
+  "aiohttp",
   "python-dotenv>=1.0.0",
 ]
 [project.optional-dependencies]
@@ -67,6 +68,7 @@ dependencies = [
   "fastapi-versionizer",
   "uvicorn",
   "langchain",
+  "aiofiles"
 ]
 
 [tool.hatch.envs.default.scripts]
