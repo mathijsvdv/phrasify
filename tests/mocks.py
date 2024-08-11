@@ -6,7 +6,7 @@ from typing import Callable, Mapping, Optional, TypeVar
 import requests
 
 from phrasify.card import TranslationCard
-from phrasify.card_gen import CardGeneratorConfig
+from phrasify.card_gen import CardGeneratorConfig, NextCardFactory
 
 T_co = TypeVar("T_co", covariant=True)
 
@@ -117,8 +117,9 @@ class MockTemplateRenderContext:
         return type(self)(self._note.copy())
 
 
-def create_counting_card_generator(
+def create_counting_card_factory(
     config: CardGeneratorConfig,
-) -> CountingCardGenerator:
-    """Create a CountingCardGenerator from a config."""
-    return lru_cache(maxsize=None)(CountingCardGenerator(config.n_cards))
+) -> Callable[[TranslationCard], TranslationCard]:
+    """Create a card factory that returns a CountingCardGenerator."""
+    card_factory = NextCardFactory(CountingCardGenerator(config.n_cards))
+    return lru_cache(maxsize=None)(card_factory)
