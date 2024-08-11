@@ -8,7 +8,7 @@ package_name := env("PACKAGE_NAME", "phrasify")
 release_folder := env("RELEASE_FOLDER", "./releases")
 release_name := anki_addon_name + "-" + anki_addon_version
 
-requirements := "charset_normalizer dotenv aiohttp multidict yarl async_timeout aiosignal frozenlist"
+requirements := "charset_normalizer dotenv aiohttp aiofiles multidict yarl async_timeout aiosignal frozenlist"
 anki_addon_copy_env := env("ANKI_ADDON_COPY_ENV", "prod")
 
 api_port := env("API_PORT", "8800")

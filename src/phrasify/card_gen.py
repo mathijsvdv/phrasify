@@ -3,9 +3,13 @@ import json
 import re
 from collections import deque
 from dataclasses import asdict, dataclass, field
-from functools import lru_cache, partial
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Callable, Deque, Dict, Iterable, Iterator, List, Optional, Union
 
+import aiofiles
+import aiofiles.os as aos
+import aiofiles.ospath
 import requests
 
 from .card import TranslationCard
@@ -309,7 +313,7 @@ class JSONCachedCardGenerator:
     fast_n_cards: int = 1
     name: str = "default"
 
-    def get_cache_path(self, card: TranslationCard) -> str:
+    def get_cache_path(self, card: TranslationCard) -> Path:
         """Get the path to the cache file."""
         return GENERATED_CARDS_DIR / f"{self.name}_{card.to_path_friendly_str()}.json"
 
@@ -318,19 +322,23 @@ class JSONCachedCardGenerator:
         for path in GENERATED_CARDS_DIR.glob(f"{self.name}_*.json"):
             path.unlink()
 
-    def get_from_cache(self, card: TranslationCard) -> Deque[TranslationCard]:
+    async def get_from_cache(self, card: TranslationCard) -> Deque[TranslationCard]:
         """Get the cards from the cache, if they exist."""
         cache_path = self.get_cache_path(card)
         try:
-            with open(cache_path) as f:
-                cards = json.load(f, object_hook=TranslationCard.from_dict)
+            async with aiofiles.open(cache_path) as f:
+                content = await f.read()
+
+            cards = json.loads(content, object_hook=TranslationCard.from_dict)
 
         except FileNotFoundError:
             cards = []
 
         return deque(cards)
 
-    def write_to_cache(self, card: TranslationCard, cards: Iterable[TranslationCard]):
+    async def write_to_cache(
+        self, card: TranslationCard, cards: Iterable[TranslationCard]
+    ):
         """Write the cards to the cache.
 
         Parameters
@@ -341,44 +349,47 @@ class JSONCachedCardGenerator:
             The cards to write to the cache.
         """
         cache_path = self.get_cache_path(card)
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(cache_path, "w") as f:
-            json.dump(list(cards), f, cls=TranslationCardEncoder)
+        await aos.makedirs(cache_path.parent, exist_ok=True)
 
-    def task_write_to_cache(
-        self, card: TranslationCard, cards: Iterable[TranslationCard], task
+        cards_json = json.dumps(list(cards), cls=TranslationCardEncoder)
+        async with aiofiles.open(cache_path, "w") as f:
+            await f.write(cards_json)
+
+    async def extend_cache(
+        self,
+        card: TranslationCard,
+        cards: Deque[TranslationCard],
+        n_cards: Optional[int] = None,
     ):
-        new_cards = task.result()
+        """Extend the cache with new cards."""
+        new_cards = await self.card_generator.acall(card, n_cards=n_cards)
         cards.extend(new_cards)
-        self.write_to_cache(card, cards)
+        await self.write_to_cache(card, cards)
         logger.debug(f"Extended cache with {len(new_cards)} new cards for card {card}")
 
     async def acall(self, card: TranslationCard) -> Iterator[TranslationCard]:
         """Generate language cards from the front text inserted into a prompt."""
-        cards = self.get_from_cache(card)
-        logger.debug(f"Retrieving {len(cards)} cards from cache for card {card}")
+        cards = await self.get_from_cache(card)
+        logger.debug(f"Retrieved {len(cards)} cards from cache for card {card}")
 
         tasks = set()
-        task_write_to_cache = partial(self.task_write_to_cache, card, cards)
         while True:
             if len(cards) < self.min_cards:
                 logger.debug(
                     f"Cache has {len(cards)} < {self.min_cards} cards, "
                     f"generating more for card {card}"
                 )
-                get_n_cards = asyncio.create_task(self.card_generator.acall(card))
+                get_n_cards = asyncio.create_task(self.extend_cache(card, cards))
                 tasks.add(get_n_cards)
                 get_n_cards.add_done_callback(tasks.discard)
-                get_n_cards.add_done_callback(task_write_to_cache)
 
             if len(cards) == 0:
                 logger.debug("No more cards in cache, generating one card to be quick")
                 get_1_card = asyncio.create_task(
-                    self.card_generator.acall(card, n_cards=self.fast_n_cards)
+                    self.extend_cache(card, cards, n_cards=self.fast_n_cards)
                 )
                 tasks.add(get_1_card)
                 get_1_card.add_done_callback(tasks.discard)
-                get_1_card.add_done_callback(task_write_to_cache)
 
             if tasks:
                 await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
@@ -390,7 +401,7 @@ class JSONCachedCardGenerator:
                 break
 
             new_card = cards.popleft()
-            self.write_to_cache(card, cards)
+            await self.write_to_cache(card, cards)
 
             yield new_card
 
