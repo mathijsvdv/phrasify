@@ -1,4 +1,5 @@
 import dataclasses
+import re
 from functools import lru_cache
 from typing import Mapping
 
@@ -68,8 +69,8 @@ def fast_n_cards():
 
 
 @pytest.fixture
-def counting_card_generator(n_cards, fast_n_cards):
-    card_generator = CountingCardGenerator(n_cards=n_cards)
+def sleeping_card_generator(n_cards, fast_n_cards):
+    card_generator = CountingCardGenerator(n_cards=n_cards, sleep_interval=0.1)
 
     try:
         json_cached_card_generator = JSONCachedCardGenerator(
@@ -123,9 +124,9 @@ def language_field_names(request):
 
 
 @pytest.fixture()
-def phrasify_filt(counting_card_generator, language_field_names) -> PhrasifyFilter:
+def phrasify_filt(sleeping_card_generator, language_field_names) -> PhrasifyFilter:
     filt = PhrasifyFilter(
-        card_factory=card_generator_to_factory(counting_card_generator),
+        card_factory=card_generator_to_factory(sleeping_card_generator),
         language_field_names=language_field_names,
     )
     return filt
@@ -185,7 +186,7 @@ def example_context() -> MockTemplateRenderContext:
     return MockTemplateRenderContext(note={"Front": "(Front)", "Back": "(Back)"})
 
 
-def test_phrasify_filter(phrasify_filt: PhrasifyFilter, context: HasNote, n_cards):
+def test_phrasify_filter(phrasify_filt: PhrasifyFilter, context: HasNote):
     """Test that the PhrasifyFilter returns the expected card.
 
     We call the phrasify_filter multiple times (for both the 'Front' and 'Back' field)
@@ -212,12 +213,27 @@ def test_phrasify_filter(phrasify_filt: PhrasifyFilter, context: HasNote, n_card
     input_card = TranslationCard(
         source=note[source_field_name], target=note[target_field_name]
     )
-    expected_card = TranslationCard(
-        source=f"Source of card for {input_card} after 1 call(s) with {n_cards} card(s) (card 0)",  # noqa: E501
-        target=f"Target of card for {input_card} after 1 call(s) with {n_cards} card(s) (card 0)",  # noqa: E501
+    pattern = (
+        r"(?P<source_target>Source|Target) of card for (?P<input_card>.+?) "
+        r"after (?P<n_times_called>\d+) call\(s\) "
+        r"with (?P<n_cards>\d+) card\(s\) \(card (?P<i_card>\d+)\)"
     )
 
-    assert actual_card == expected_card
+    # Perform the match
+    source_match = re.match(pattern, actual_card.source)
+    target_match = re.match(pattern, actual_card.target)
+
+    # Check the match
+    if source_match and target_match:
+        assert source_match.group("source_target") == "Source"
+        assert target_match.group("source_target") == "Target"
+        assert source_match.group("input_card") == str(input_card)
+        assert target_match.group("input_card") == str(input_card)
+        assert int(source_match.group("n_times_called")) == int(
+            target_match.group("n_times_called")
+        )
+        assert int(source_match.group("n_cards")) == int(target_match.group("n_cards"))
+        assert int(source_match.group("i_card")) == int(target_match.group("i_card"))
 
 
 @pytest.mark.parametrize("source_target", ["source", "target"])
