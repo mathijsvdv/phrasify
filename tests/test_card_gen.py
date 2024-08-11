@@ -6,6 +6,7 @@ import pytest
 from phrasify.card import TranslationCard
 from phrasify.card_gen import JSONCachedCardGenerator
 from phrasify.error import CardGenerationError, ChainError
+from phrasify.event_loop import run_coroutine_in_thread
 
 
 def test_llm_translation_card_generator(
@@ -99,9 +100,7 @@ def test_json_cached_card_generator_gets_fewer_cards_first(
 
     # Simulate other work being done. In the meantime, the cache should be filled
     # with the bigger batch of cards.
-    loop = asyncio.get_event_loop()
-    all_tasks = asyncio.all_tasks(loop)
-    loop.run_until_complete(asyncio.gather(*all_tasks))
+    run_coroutine_in_thread(asyncio.sleep(0.5)).result()
 
     # Get 5 more cards, which uses the cache with the bigger batch of cards
     actual_cards = list(itertools.islice(card_iter, 5))

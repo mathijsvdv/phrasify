@@ -72,39 +72,32 @@ def fast_n_cards():
 def sleeping_card_generator(n_cards, fast_n_cards):
     card_generator = CountingCardGenerator(n_cards=n_cards, sleep_interval=0.1)
 
-    try:
-        json_cached_card_generator = JSONCachedCardGenerator(
-            card_generator, fast_n_cards=fast_n_cards, name="counting"
-        )
-        yield json_cached_card_generator
-    finally:
-        json_cached_card_generator.clear_cache()
+    card_generator = JSONCachedCardGenerator(
+        card_generator, fast_n_cards=fast_n_cards, name="counting"
+    )
+    yield card_generator
+    card_generator.clear_cache()
 
 
 @pytest.fixture()
 def empty_card_generator(n_cards, fast_n_cards):
     card_generator = EmptyCardGenerator(n_cards=n_cards)
 
-    try:
-        json_cached_card_generator = JSONCachedCardGenerator(
-            card_generator, fast_n_cards=fast_n_cards, name="empty"
-        )
-        yield json_cached_card_generator
-    finally:
-        json_cached_card_generator.clear_cache()
+    card_generator = JSONCachedCardGenerator(
+        card_generator, fast_n_cards=fast_n_cards, name="empty"
+    )
+    yield card_generator
+
+    card_generator.clear_cache()
 
 
 @pytest.fixture()
 def error_card_generator():
     card_generator = ErrorCardGenerator(CardGenerationError("Error"))
 
-    try:
-        json_cached_card_generator = JSONCachedCardGenerator(
-            card_generator, name="error"
-        )
-        yield json_cached_card_generator
-    finally:
-        json_cached_card_generator.clear_cache()
+    card_generator = JSONCachedCardGenerator(card_generator, name="error")
+    yield card_generator
+    card_generator.clear_cache()
 
 
 def card_generator_to_factory(card_generator: CardGenerator) -> CardFactory:

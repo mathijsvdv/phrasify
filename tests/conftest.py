@@ -6,6 +6,7 @@ import pytest
 
 from phrasify.card import TranslationCard
 from phrasify.card_gen import JSONCachedCardGenerator, LLMTranslationCardGenerator
+from phrasify.constants import GENERATED_CARDS_DIR
 from tests.mocks import Always, CountingCardGenerator, identity
 
 
@@ -160,11 +161,9 @@ def sleeping_card_generator():
 
 @pytest.fixture()
 def json_cached_card_generator(sleeping_card_generator):
-    try:
-        card_generator = JSONCachedCardGenerator(sleeping_card_generator)
-        yield card_generator
-    finally:
-        card_generator.clear_cache()
+    card_generator = JSONCachedCardGenerator(sleeping_card_generator, name="test")
+    yield card_generator
+    card_generator.clear_cache()
 
 
 @pytest.fixture(
@@ -174,3 +173,10 @@ def json_cached_card_generator(sleeping_card_generator):
 def translation_card(request):
     source, target = request.param
     return TranslationCard(source=source, target=target)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup():
+    yield
+    for path in GENERATED_CARDS_DIR.glob("*.json"):
+        path.unlink()
