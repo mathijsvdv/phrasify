@@ -344,15 +344,12 @@ class JSONCachedCardGenerator:
         for path in GENERATED_CARDS_DIR.glob(f"{self.name}_*.json"):
             path.unlink()
 
-    async def get_from_cache(
-        self, card: TranslationCard, cache_lock: asyncio.Lock
-    ) -> Deque[TranslationCard]:
+    async def get_from_cache(self, card: TranslationCard) -> Deque[TranslationCard]:
         """Get the cards from the cache, if they exist."""
         cache_path = self.get_cache_path(card)
         try:
-            async with cache_lock:
-                async with aiofiles.open(cache_path) as f:
-                    content = await f.read()
+            async with aiofiles.open(cache_path) as f:
+                content = await f.read()
 
             cards = json.loads(content, object_hook=TranslationCard.from_dict)
 
@@ -365,7 +362,6 @@ class JSONCachedCardGenerator:
         self,
         card: TranslationCard,
         cards: Iterable[TranslationCard],
-        cache_lock: asyncio.Lock,
     ):
         """Write the cards to the cache.
 
@@ -379,9 +375,8 @@ class JSONCachedCardGenerator:
         cache_path = self.get_cache_path(card)
         await aos.makedirs(cache_path.parent, exist_ok=True)
         cards_json = json.dumps(list(cards), cls=TranslationCardEncoder)
-        async with cache_lock:
-            async with aiofiles.open(cache_path, "w") as f:
-                await f.write(cards_json)
+        async with aiofiles.open(cache_path, "w") as f:
+            await f.write(cards_json)
 
     async def extend_cache(
         self,
@@ -391,16 +386,18 @@ class JSONCachedCardGenerator:
     ):
         """Extend the cache with new cards."""
         new_cards = await self.card_generator.acall(card, n_cards=n_cards)
-        cards = await self.get_from_cache(card, cache_lock)
-        cards.extend(new_cards)
-        await self.write_to_cache(card, cards, cache_lock)
+        async with cache_lock:
+            cards = await self.get_from_cache(card)
+            cards.extend(new_cards)
+            await self.write_to_cache(card, cards)
         logger.debug(f"Extended cache with {len(new_cards)} new cards for card {card}")
 
     async def acall(self, card: TranslationCard) -> Iterator[TranslationCard]:
         """Generate language cards from the front text inserted into a prompt."""
         cache_path = self.get_cache_path(card)
         cache_lock = get_file_lock(cache_path)
-        cards = await self.get_from_cache(card, cache_lock=cache_lock)
+        async with cache_lock:
+            cards = await self.get_from_cache(card)
         logger.debug(f"Retrieved {len(cards)} cards from cache for card {card}")
 
         tasks = get_file_tasks(cache_path)
@@ -429,15 +426,17 @@ class JSONCachedCardGenerator:
                 # We're out of cards, so need to wait for one of the two tasks
                 await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
-            cards = await self.get_from_cache(card, cache_lock=cache_lock)
-            if not cards:
-                logger.warning(
-                    f"Failed to generate cards. Stopping the generator for card {card}"
-                )
-                break
+            async with cache_lock:
+                cards = await self.get_from_cache(card)
+                if not cards:
+                    logger.warning(
+                        f"Failed to generate cards. "
+                        f"Stopping the generator for card {card}"
+                    )
+                    break
 
-            new_card = cards.popleft()
-            await self.write_to_cache(card, cards, cache_lock=cache_lock)
+                new_card = cards.popleft()
+                await self.write_to_cache(card, cards)
 
             yield new_card
 
