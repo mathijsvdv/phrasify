@@ -8,13 +8,18 @@ package_name := env("PACKAGE_NAME", "phrasify")
 release_folder := env("RELEASE_FOLDER", "./releases")
 release_name := anki_addon_name + "-" + anki_addon_version
 
-requirements := "charset_normalizer dotenv"
+requirements := "charset_normalizer dotenv aiohttp aiofiles multidict yarl async_timeout aiosignal frozenlist"
 anki_addon_copy_env := env("ANKI_ADDON_COPY_ENV", "prod")
 
 api_port := env("API_PORT", "8800")
 serve_args := "--port " + api_port
 image := env("IMAGE", "phrasify")
 k8s_env := env("K8S_ENV", "dev")
+
+@_default:
+	just --list
+	echo "\n...with the following variables:"
+	just --evaluate
 
 # Path to Anki folder - depends on OS
 # See https://docs.ankiweb.net/files.html?highlight=anki%20folder#file-locations
@@ -54,11 +59,6 @@ k8s_env := env("K8S_ENV", "dev")
 	else \
 		echo $ANKI_ADDON_PATH; \
 	fi
-
-@_default:
-	just --list
-	echo "\n...with the following variables:"
-	just --evaluate
 
 @root:
 	echo "{{replace(justfile_directory(), "\\", "/")}}"

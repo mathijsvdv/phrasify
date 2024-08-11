@@ -1,10 +1,12 @@
+import asyncio
+import time
 from functools import lru_cache
-from typing import Callable, Mapping, TypeVar
+from typing import Callable, Mapping, Optional, TypeVar
 
 import requests
 
 from phrasify.card import TranslationCard
-from phrasify.card_gen import CardGeneratorConfig
+from phrasify.card_gen import CardGeneratorConfig, NextCardFactory
 
 T_co = TypeVar("T_co", covariant=True)
 
@@ -30,21 +32,43 @@ class CountingCardGenerator:
     It keeps track of how often it was called in order to test that ` lru_cache` works.
     """
 
-    def __init__(self, n_cards: int = 1):
+    def __init__(self, n_cards: int = 1, sleep_interval: float = 0.0):
         self.n_cards = n_cards
+        self.sleep_interval = sleep_interval
         self.n_times_called = 0
 
-    def __call__(self, card: TranslationCard):
+    def _call(self, card: TranslationCard, n_cards: Optional[int] = None):
+        if n_cards is None:
+            n_cards = self.n_cards
+
         self.n_times_called += 1
-        source = f"Source of card for {card} after {self.n_times_called} call(s)"
-        target = f"Target of card for {card} after {self.n_times_called} call(s)"
+        source = f"Source of card for {card} after {self.n_times_called} call(s) with {n_cards} card(s)"  # noqa: E501
+        target = f"Target of card for {card} after {self.n_times_called} call(s) with {n_cards} card(s)"  # noqa: E501
 
         return [
             TranslationCard(
                 source=f"{source} (card {i})", target=f"{target} (card {i})"
             )
-            for i in range(self.n_cards)
+            for i in range(n_cards)
         ]
+
+    async def acall(self, card: TranslationCard, n_cards: Optional[int] = None):
+        if n_cards is None:
+            n_cards = self.n_cards
+
+        if self.sleep_interval > 0.0:
+            await asyncio.sleep(self.sleep_interval * n_cards)
+
+        return self._call(card, n_cards=n_cards)
+
+    def __call__(self, card: TranslationCard, n_cards: Optional[int] = None):
+        if n_cards is None:
+            n_cards = self.n_cards
+
+        if self.sleep_interval > 0.0:
+            time.sleep(self.sleep_interval * self.n_cards)
+
+        return self._call(card, n_cards=n_cards)
 
 
 class EmptyCardGenerator:
@@ -53,8 +77,16 @@ class EmptyCardGenerator:
     def __init__(self, n_cards: int = 1):
         self.n_cards = n_cards
 
-    def __call__(self, card: TranslationCard):  # noqa: ARG002
-        return [TranslationCard() for _ in range(self.n_cards)]
+    def __call__(
+        self, card: TranslationCard, n_cards: Optional[int] = None  # noqa: ARG002
+    ):
+        if n_cards is None:
+            n_cards = self.n_cards
+
+        return [TranslationCard() for _ in range(n_cards)]
+
+    async def acall(self, card: TranslationCard, n_cards: Optional[int] = None):
+        return self(card, n_cards=n_cards)
 
 
 class ErrorCardGenerator:
@@ -63,8 +95,13 @@ class ErrorCardGenerator:
     def __init__(self, error: Exception):
         self.error = error
 
-    def __call__(self, card: TranslationCard):  # noqa: ARG002
+    def __call__(
+        self, card: TranslationCard, n_cards: Optional[int] = None  # noqa: ARG002
+    ):
         raise self.error
+
+    async def acall(self, card: TranslationCard, n_cards: Optional[int] = None):
+        return self(card, n_cards=n_cards)
 
 
 class Always(Callable[..., T_co]):
@@ -93,8 +130,9 @@ class MockTemplateRenderContext:
         return type(self)(self._note.copy())
 
 
-def create_counting_card_generator(
+def create_counting_card_factory(
     config: CardGeneratorConfig,
-) -> CountingCardGenerator:
-    """Create a CountingCardGenerator from a config."""
-    return lru_cache(maxsize=None)(CountingCardGenerator(config.n_cards))
+) -> Callable[[TranslationCard], TranslationCard]:
+    """Create a card factory that returns a CountingCardGenerator."""
+    card_factory = NextCardFactory(CountingCardGenerator(config.n_cards))
+    return lru_cache(maxsize=None)(card_factory)

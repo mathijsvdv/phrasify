@@ -1,4 +1,5 @@
 import dataclasses
+import re
 from functools import lru_cache
 from typing import Mapping
 
@@ -6,10 +7,15 @@ import pytest
 
 from phrasify.card import TranslationCard
 from phrasify.card_gen import (
+    CardFactory,
+    CardFactoryCreator,
+    CardGenerator,
     CardGeneratorConfig,
-    CardGeneratorFactory,
-    cached2_card_generator_factory,
+    JSONCachedCardGenerator,
+    NextCardFactory,
+    cached2_card_factory_creator,
 )
+from phrasify.constants import DEFAULT_N_CARDS
 from phrasify.error import CardGenerationError
 from phrasify.hooks.phrasify_filter import (
     HasNote,
@@ -25,7 +31,7 @@ from tests.mocks import (
     EmptyCardGenerator,
     ErrorCardGenerator,
     MockTemplateRenderContext,
-    create_counting_card_generator,
+    create_counting_card_factory,
 )
 
 
@@ -53,25 +59,52 @@ def test_parse_phrasify_filter_name_invalid():
         parse_phrasify_filter_name(filter_name)
 
 
+@pytest.fixture
+def fast_n_cards():
+    """
+    Number of cards to generate quickly in JSONCachedCardGenerator while
+    waiting for the card generator to generate the rest of the cards.
+    """
+    return 1
+
+
+@pytest.fixture
+def sleeping_card_generator(n_cards, fast_n_cards):
+    card_generator = CountingCardGenerator(n_cards=n_cards, sleep_interval=0.1)
+
+    card_generator = JSONCachedCardGenerator(
+        card_generator, fast_n_cards=fast_n_cards, name="counting"
+    )
+    yield card_generator
+    card_generator.clear_cache()
+
+
 @pytest.fixture()
-def counting_card_generator(n_cards):
-    card_generator = CountingCardGenerator(n_cards=n_cards)
-
-    return card_generator
-
-
-@pytest.fixture()
-def empty_card_generator(n_cards):
+def empty_card_generator(n_cards, fast_n_cards):
     card_generator = EmptyCardGenerator(n_cards=n_cards)
 
-    return card_generator
+    card_generator = JSONCachedCardGenerator(
+        card_generator, fast_n_cards=fast_n_cards, name="empty"
+    )
+    yield card_generator
+
+    card_generator.clear_cache()
 
 
 @pytest.fixture()
 def error_card_generator():
-    card_generator = ErrorCardGenerator(error=CardGenerationError())
+    card_generator = ErrorCardGenerator(CardGenerationError("Error"))
 
-    return card_generator
+    card_generator = JSONCachedCardGenerator(card_generator, name="error")
+    yield card_generator
+    card_generator.clear_cache()
+
+
+def card_generator_to_factory(card_generator: CardGenerator) -> CardFactory:
+    if not isinstance(card_generator, JSONCachedCardGenerator):
+        card_generator = JSONCachedCardGenerator(card_generator)
+
+    return lru_cache(maxsize=None)(NextCardFactory(card_generator))
 
 
 @pytest.fixture(
@@ -84,9 +117,9 @@ def language_field_names(request):
 
 
 @pytest.fixture()
-def phrasify_filt(counting_card_generator, language_field_names) -> PhrasifyFilter:
+def phrasify_filt(sleeping_card_generator, language_field_names) -> PhrasifyFilter:
     filt = PhrasifyFilter(
-        card_generator=lru_cache(maxsize=None)(counting_card_generator),
+        card_factory=card_generator_to_factory(sleeping_card_generator),
         language_field_names=language_field_names,
     )
     return filt
@@ -97,7 +130,7 @@ def phrasify_filt_empty_card(
     empty_card_generator, language_field_names
 ) -> PhrasifyFilter:
     filt = PhrasifyFilter(
-        card_generator=lru_cache(maxsize=None)(empty_card_generator),
+        card_factory=card_generator_to_factory(empty_card_generator),
         language_field_names=language_field_names,
     )
     return filt
@@ -106,7 +139,7 @@ def phrasify_filt_empty_card(
 @pytest.fixture()
 def phrasify_filt_error(error_card_generator, language_field_names) -> PhrasifyFilter:
     filt = PhrasifyFilter(
-        card_generator=lru_cache(maxsize=None)(error_card_generator),
+        card_factory=card_generator_to_factory(error_card_generator),
         language_field_names=language_field_names,
     )
     return filt
@@ -173,12 +206,27 @@ def test_phrasify_filter(phrasify_filt: PhrasifyFilter, context: HasNote):
     input_card = TranslationCard(
         source=note[source_field_name], target=note[target_field_name]
     )
-    expected_card = TranslationCard(
-        source=f"Source of card for {input_card} after 1 call(s) (card 0)",
-        target=f"Target of card for {input_card} after 1 call(s) (card 0)",
+    pattern = (
+        r"(?P<source_target>Source|Target) of card for (?P<input_card>.+?) "
+        r"after (?P<n_times_called>\d+) call\(s\) "
+        r"with (?P<n_cards>\d+) card\(s\) \(card (?P<i_card>\d+)\)"
     )
 
-    assert actual_card == expected_card
+    # Perform the match
+    source_match = re.match(pattern, actual_card.source)
+    target_match = re.match(pattern, actual_card.target)
+
+    # Check the match
+    if source_match and target_match:
+        assert source_match.group("source_target") == "Source"
+        assert target_match.group("source_target") == "Target"
+        assert source_match.group("input_card") == str(input_card)
+        assert target_match.group("input_card") == str(input_card)
+        assert int(source_match.group("n_times_called")) == int(
+            target_match.group("n_times_called")
+        )
+        assert int(source_match.group("n_cards")) == int(target_match.group("n_cards"))
+        assert int(source_match.group("i_card")) == int(target_match.group("i_card"))
 
 
 @pytest.mark.parametrize("source_target", ["source", "target"])
@@ -221,7 +269,7 @@ def test_phrasify_filter_card_generation_error(
 
 
 @pytest.mark.parametrize("source_target", ["source", "target"])
-@pytest.mark.parametrize("n_cards", [0])
+@pytest.mark.parametrize(("n_cards", "fast_n_cards"), [(0, 0)])
 def test_phrasify_filter_no_cards(
     phrasify_filt: PhrasifyFilter, context: HasNote, source_target: str
 ):
@@ -304,7 +352,7 @@ def all_unique(iterable):
     return len(set(iterable)) == len(iterable)
 
 
-def test_cached2_card_generator_factory():
+def test_cached2_card_factory_creator():
     """Test that the card generator factory returns the same instance of the card
     generator when called multiple times with the same context and config.
 
@@ -324,46 +372,46 @@ def test_cached2_card_generator_factory():
         CardGeneratorConfig(llm="mistral", n_cards=2),
     ]
 
-    card_generator_factory = cached2_card_generator_factory(
-        id(contexts[0]), create_counting_card_generator
+    card_factory_creator = cached2_card_factory_creator(
+        id(contexts[0]), create_counting_card_factory
     )
-    card_generator_factory_same = cached2_card_generator_factory(
-        id(contexts[0]), create_counting_card_generator
+    card_factory_creator_same = cached2_card_factory_creator(
+        id(contexts[0]), create_counting_card_factory
     )
-    card_generator_factory_copy = cached2_card_generator_factory(
-        id(contexts[0].copy()), create_counting_card_generator
+    card_factory_creator_copy = cached2_card_factory_creator(
+        id(contexts[0].copy()), create_counting_card_factory
     )
-    card_generator_factory_diff = cached2_card_generator_factory(
-        id(contexts[1]), create_counting_card_generator
+    card_factory_creator_diff = cached2_card_factory_creator(
+        id(contexts[1]), create_counting_card_factory
     )
 
     for config in configs:
-        # Card generator was created from the same context and (a copy of) the same
-        # config - should give the same card_generator
-        card_generator1 = card_generator_factory(config)
-        card_generator2 = card_generator_factory_same(dataclasses.replace(config))
+        # Card factory was created from the same context and (a copy of) the same
+        # config - should give the same card_factory
+        card_factory1 = card_factory_creator(config)
+        card_factory2 = card_factory_creator_same(dataclasses.replace(config))
 
-        assert card_generator1 is card_generator2
-
-    for config in configs:
-        # Card generator was created from a copy of the context and (a copy of) the same
-        # config - should give different card_generators because context is not the same
-        card_generator1 = card_generator_factory(config)
-        card_generator2 = card_generator_factory_copy(dataclasses.replace(config))
-
-        assert card_generator1 is not card_generator2
+        assert card_factory1 is card_factory2
 
     for config in configs:
-        # Card generator was created from a different context and (a copy of) the same
-        # config - should give different card_generators because context is not the same
-        card_generator1 = card_generator_factory(config)
-        card_generator2 = card_generator_factory_diff(dataclasses.replace(config))
+        # Card factory was created from a copy of the context and (a copy of) the same
+        # config - should give different card_factory because context is not the same
+        card_factory1 = card_factory_creator(config)
+        card_factory2 = card_factory_creator_copy(dataclasses.replace(config))
 
-        assert card_generator1 is not card_generator2
+        assert card_factory1 is not card_factory2
 
-    # Card generator was created from the same context and different configs
-    # - should give different card_generators because config is not the same
-    card_generators = [card_generator_factory(config) for config in configs]
+    for config in configs:
+        # Card factory was created from a different context and (a copy of) the same
+        # config - should give different card_factory because context is not the same
+        card_factory1 = card_factory_creator(config)
+        card_factory2 = card_factory_creator_diff(dataclasses.replace(config))
+
+        assert card_factory1 is not card_factory2
+
+    # Card factory was created from the same context and different configs
+    # - should give different card_factory objects because config is not the same
+    card_generators = [card_factory_creator(config) for config in configs]
     assert all_unique([id(cg) for cg in card_generators])
 
 
@@ -371,7 +419,7 @@ def _test_phrasify_filter_hook(
     note: Mapping[str, str],
     filter_name: str,
     context: HasNote,
-    card_generator_factory: CardGeneratorFactory,
+    card_factory_creator: CardFactoryCreator,
     field_name: str,
     expected: str,
 ):
@@ -379,14 +427,14 @@ def _test_phrasify_filter_hook(
     field)"""
     field_text = note[field_name]
     input_card = TranslationCard(source=note["Front"], target=note["Back"])
-    expected = expected.format(input_card=input_card)
+    expected = expected.format(input_card=input_card, n_cards=DEFAULT_N_CARDS)
 
     actual = phrasify_filter(
         field_text=field_text,
         field_name=field_name,
         filter_name=filter_name,
         context=context,
-        card_generator_factory=card_generator_factory,
+        card_factory_creator=card_factory_creator,
     )
 
     assert actual == expected
@@ -396,7 +444,7 @@ def _test_phrasify_filter_hook(
         field_name=field_name,
         filter_name=filter_name,
         context=context.copy(),
-        card_generator_factory=card_generator_factory,
+        card_factory_creator=card_factory_creator,
     )
 
     assert actual_context_copy == expected
@@ -406,16 +454,16 @@ def _test_phrasify_filter_hook_front(
     note: Mapping[str, str],
     filter_name: str,
     context: HasNote,
-    card_generator_factory: CardGeneratorFactory,
+    card_factory_creator: CardFactoryCreator,
 ):
     """Test that the PhrasifyFilter returns the expected front of the card."""
     _test_phrasify_filter_hook(
         note=note,
         filter_name=filter_name,
         context=context,
-        card_generator_factory=card_generator_factory,
+        card_factory_creator=card_factory_creator,
         field_name="Front",
-        expected="Source of card for {input_card} after 1 call(s) (card 0)",
+        expected="Source of card for {input_card} after 1 call(s) with {n_cards} card(s) (card 0)",  # noqa: E501
     )
 
 
@@ -423,23 +471,23 @@ def _test_phrasify_filter_hook_back(
     note: Mapping[str, str],
     filter_name: str,
     context: HasNote,
-    card_generator_factory: CardGeneratorFactory,
+    card_factory_creator: CardFactoryCreator,
 ):
     """Test that the PhrasifyFilter returns the expected back of the card."""
     _test_phrasify_filter_hook(
         note=note,
         filter_name=filter_name,
         context=context,
-        card_generator_factory=card_generator_factory,
+        card_factory_creator=card_factory_creator,
         field_name="Back",
-        expected="Target of card for {input_card} after 1 call(s) (card 0)",
+        expected="Target of card for {input_card} after 1 call(s) with {n_cards} card(s) (card 0)",  # noqa: E501
     )
 
 
 def test_phrasify_filter_hook():
     """Test that the PhrasifyFilter returns the expected card."""
     # Arrange
-    card_generator_factory = create_counting_card_generator
+    card_factory_creator = create_counting_card_factory
 
     filter_name = (
         "phrasify vocab-to-sentence source_lang=English target_lang=Ukrainian "
@@ -462,8 +510,8 @@ def test_phrasify_filter_hook():
     ]
 
     for nt, filtn, ctx in nt_filtn_ctxs:
-        _test_phrasify_filter_hook_front(nt, filtn, ctx, card_generator_factory)
-        _test_phrasify_filter_hook_back(nt, filtn, ctx, card_generator_factory)
+        _test_phrasify_filter_hook_front(nt, filtn, ctx, card_factory_creator)
+        _test_phrasify_filter_hook_back(nt, filtn, ctx, card_factory_creator)
 
 
 def test_phrasify_filter_hook_does_not_start_with_llm(context: HasNote):

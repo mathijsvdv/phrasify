@@ -19,3 +19,7 @@ class TranslationCard:
 
     def __hash__(self):
         return hash(self.source) ^ hash(self.target)
+
+    def to_path_friendly_str(self) -> str:
+        """Return a string that can be used in a file path."""
+        return f"{self.source}={self.target}"
