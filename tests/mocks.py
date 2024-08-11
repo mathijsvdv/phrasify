@@ -77,8 +77,16 @@ class EmptyCardGenerator:
     def __init__(self, n_cards: int = 1):
         self.n_cards = n_cards
 
-    def __call__(self, card: TranslationCard):  # noqa: ARG002
-        return [TranslationCard() for _ in range(self.n_cards)]
+    def __call__(
+        self, card: TranslationCard, n_cards: Optional[int] = None  # noqa: ARG002
+    ):
+        if n_cards is None:
+            n_cards = self.n_cards
+
+        return [TranslationCard() for _ in range(n_cards)]
+
+    async def acall(self, card: TranslationCard, n_cards: Optional[int] = None):
+        return self(card, n_cards=n_cards)
 
 
 class ErrorCardGenerator:
@@ -87,8 +95,13 @@ class ErrorCardGenerator:
     def __init__(self, error: Exception):
         self.error = error
 
-    def __call__(self, card: TranslationCard):  # noqa: ARG002
+    def __call__(
+        self, card: TranslationCard, n_cards: Optional[int] = None  # noqa: ARG002
+    ):
         raise self.error
+
+    async def acall(self, card: TranslationCard, n_cards: Optional[int] = None):
+        return self(card, n_cards=n_cards)
 
 
 class Always(Callable[..., T_co]):

@@ -306,6 +306,7 @@ class JSONCachedCardGenerator:
 
     card_generator: CardGenerator
     min_cards: int = DEFAULT_MIN_CARDS
+    fast_n_cards: int = 1
     name: str = "default"
 
     def get_cache_path(self, card: TranslationCard) -> str:
@@ -373,7 +374,7 @@ class JSONCachedCardGenerator:
             if len(cards) == 0:
                 logger.debug("No more cards in cache, generating one card to be quick")
                 get_1_card = asyncio.create_task(
-                    self.card_generator.acall(card, n_cards=1)
+                    self.card_generator.acall(card, n_cards=self.fast_n_cards)
                 )
                 tasks.add(get_1_card)
                 get_1_card.add_done_callback(tasks.discard)
@@ -381,6 +382,12 @@ class JSONCachedCardGenerator:
 
             if tasks:
                 await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+
+            if not cards:
+                logger.warning(
+                    f"Failed to generate cards. Stopping the generator for card {card}"
+                )
+                break
 
             new_card = cards.popleft()
             self.write_to_cache(card, cards)
@@ -392,7 +399,11 @@ class JSONCachedCardGenerator:
         card_iterator = self.acall(card).__aiter__()
         loop = asyncio.get_event_loop()
         while True:
-            new_card = loop.run_until_complete(card_iterator.__anext__())
+            try:
+                new_card = loop.run_until_complete(card_iterator.__anext__())
+            except StopAsyncIteration:
+                break
+
             yield new_card
 
 

@@ -10,6 +10,7 @@ from phrasify.card_gen import (
     CardFactoryCreator,
     CardGenerator,
     CardGeneratorConfig,
+    JSONCachedCardGenerator,
     NextCardFactory,
     cached2_card_factory_creator,
 )
@@ -57,28 +58,58 @@ def test_parse_phrasify_filter_name_invalid():
         parse_phrasify_filter_name(filter_name)
 
 
-@pytest.fixture()
-def counting_card_generator(n_cards):
+@pytest.fixture
+def fast_n_cards():
+    """
+    Number of cards to generate quickly in JSONCachedCardGenerator while
+    waiting for the card generator to generate the rest of the cards.
+    """
+    return 1
+
+
+@pytest.fixture
+def counting_card_generator(n_cards, fast_n_cards):
     card_generator = CountingCardGenerator(n_cards=n_cards)
 
-    return card_generator
+    try:
+        json_cached_card_generator = JSONCachedCardGenerator(
+            card_generator, fast_n_cards=fast_n_cards, name="counting"
+        )
+        yield json_cached_card_generator
+    finally:
+        json_cached_card_generator.clear_cache()
 
 
 @pytest.fixture()
-def empty_card_generator(n_cards):
+def empty_card_generator(n_cards, fast_n_cards):
     card_generator = EmptyCardGenerator(n_cards=n_cards)
 
-    return card_generator
+    try:
+        json_cached_card_generator = JSONCachedCardGenerator(
+            card_generator, fast_n_cards=fast_n_cards, name="empty"
+        )
+        yield json_cached_card_generator
+    finally:
+        json_cached_card_generator.clear_cache()
 
 
 @pytest.fixture()
 def error_card_generator():
-    card_generator = ErrorCardGenerator(error=CardGenerationError())
+    card_generator = ErrorCardGenerator(CardGenerationError("Error"))
 
-    return card_generator
+    try:
+        json_cached_card_generator = JSONCachedCardGenerator(
+            card_generator, name="error"
+        )
+        yield json_cached_card_generator
+    finally:
+        json_cached_card_generator.clear_cache()
 
 
 def card_generator_to_factory(card_generator: CardGenerator) -> CardFactory:
+    if not isinstance(card_generator, JSONCachedCardGenerator):
+        card_generator = JSONCachedCardGenerator(card_generator)
+
     return lru_cache(maxsize=None)(NextCardFactory(card_generator))
 
 
@@ -229,7 +260,7 @@ def test_phrasify_filter_card_generation_error(
 
 
 @pytest.mark.parametrize("source_target", ["source", "target"])
-@pytest.mark.parametrize("n_cards", [0])
+@pytest.mark.parametrize(("n_cards", "fast_n_cards"), [(0, 0)])
 def test_phrasify_filter_no_cards(
     phrasify_filt: PhrasifyFilter, context: HasNote, source_target: str
 ):
