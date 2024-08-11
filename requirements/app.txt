@@ -4,12 +4,16 @@
 # - fastapi
 # - fastapi-versionizer
 # - uvicorn
+# - aiofiles
 # - aiohttp
 # - python-dotenv>=1.0.0
 # - requests>=2.31.0
 #
 
+aiofiles==24.1.0
+    # via hatch.envs.app
 aiohttp==3.9.5
+    # via hatch.envs.app
 aiosignal==1.3.1
     # via aiohttp
 annotated-types==0.6.0
@@ -29,8 +33,11 @@ click==8.1.7
 exceptiongroup==1.2.0
     # via anyio
 fastapi==0.110.0
-    # via fastapi-versionizer
+    # via
+    #   hatch.envs.app
+    #   fastapi-versionizer
 fastapi-versionizer==4.0.1
+    # via hatch.envs.app
 frozenlist==1.4.1
     # via
     #   aiohttp
@@ -53,7 +60,9 @@ pydantic==2.6.3
 pydantic-core==2.16.3
     # via pydantic
 python-dotenv==1.0.1
+    # via hatch.envs.app
 requests==2.31.0
+    # via hatch.envs.app
 sniffio==1.3.1
     # via anyio
 starlette==0.36.3
@@ -69,5 +78,6 @@ typing-extensions==4.10.0
 urllib3==2.2.1
     # via requests
 uvicorn==0.27.1
+    # via hatch.envs.app
 yarl==1.9.4
     # via aiohttp
