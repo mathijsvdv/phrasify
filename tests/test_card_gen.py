@@ -1,6 +1,10 @@
+import asyncio
+import itertools
+
 import pytest
 
 from phrasify.card import TranslationCard
+from phrasify.card_gen import JSONCachedCardGenerator
 from phrasify.error import CardGenerationError, ChainError
 
 
@@ -71,3 +75,41 @@ def test_llm_translation_card_generator_invalid_response(
     )
     with pytest.raises(CardGenerationError, match="Error parsing response from chain"):
         llm_translation_card_generator(card)
+
+
+def test_json_cached_card_generator_gets_fewer_cards_first(
+    json_cached_card_generator: JSONCachedCardGenerator,
+):
+    """
+    Test that JSONCachedCardGenerator first tries to get fewer cards (faster)
+    from the underlying card generator, then more cards (slower).
+    """
+
+    card = TranslationCard()
+    generator = json_cached_card_generator
+
+    # First call: get 1 card
+    card_iter = generator(card)
+    actual_card = next(card_iter)
+    expected_card = TranslationCard(
+        source=f"Source of card for {card} after 1 call(s) with 1 card(s) (card 0)",
+        target=f"Target of card for {card} after 1 call(s) with 1 card(s) (card 0)",
+    )
+    assert actual_card == expected_card
+
+    # Simulate other work being done. In the meantime, the cache should be filled
+    # with the bigger batch of cards.
+    loop = asyncio.get_event_loop()
+    all_tasks = asyncio.all_tasks(loop)
+    loop.run_until_complete(asyncio.gather(*all_tasks))
+
+    # Get 5 more cards, which uses the cache with the bigger batch of cards
+    actual_cards = list(itertools.islice(card_iter, 5))
+    expected_cards = [
+        TranslationCard(
+            source=f"Source of card for {card} after 2 call(s) with 5 card(s) (card {i})",  # noqa: E501
+            target=f"Target of card for {card} after 2 call(s) with 5 card(s) (card {i})",  # noqa: E501
+        )
+        for i in range(5)
+    ]
+    assert actual_cards == expected_cards

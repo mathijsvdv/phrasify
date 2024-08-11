@@ -292,7 +292,7 @@ class RemoteCardGenerator:
 
 
 class TranslationCardEncoder(json.JSONEncoder):
-    """JSON encoder for TextCard objects."""
+    """JSON encoder for TranslationCard objects."""
 
     def default(self, o: Any) -> Any:
         if isinstance(o, TranslationCard):
@@ -311,6 +311,11 @@ class JSONCachedCardGenerator:
     def get_cache_path(self, card: TranslationCard) -> str:
         """Get the path to the cache file."""
         return GENERATED_CARDS_DIR / f"{self.name}_{card.to_path_friendly_str()}.json"
+
+    def clear_cache(self):
+        """Clear the cache."""
+        for path in GENERATED_CARDS_DIR.glob(f"{self.name}_*.json"):
+            path.unlink()
 
     def get_from_cache(self, card: TranslationCard) -> Deque[TranslationCard]:
         """Get the cards from the cache, if they exist."""
@@ -374,7 +379,8 @@ class JSONCachedCardGenerator:
                 get_1_card.add_done_callback(tasks.discard)
                 get_1_card.add_done_callback(task_write_to_cache)
 
-            await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            if tasks:
+                await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
             new_card = cards.popleft()
             self.write_to_cache(card, cards)

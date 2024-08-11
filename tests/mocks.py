@@ -1,7 +1,7 @@
 import asyncio
 import time
 from functools import lru_cache
-from typing import Callable, Mapping, TypeVar
+from typing import Callable, Mapping, Optional, TypeVar
 
 import requests
 
@@ -37,29 +37,38 @@ class CountingCardGenerator:
         self.sleep_interval = sleep_interval
         self.n_times_called = 0
 
-    def _call(self, card: TranslationCard):
+    def _call(self, card: TranslationCard, n_cards: Optional[int] = None):
+        if n_cards is None:
+            n_cards = self.n_cards
+
         self.n_times_called += 1
-        source = f"Source of card for {card} after {self.n_times_called} call(s)"
-        target = f"Target of card for {card} after {self.n_times_called} call(s)"
+        source = f"Source of card for {card} after {self.n_times_called} call(s) with {n_cards} card(s)"  # noqa: E501
+        target = f"Target of card for {card} after {self.n_times_called} call(s) with {n_cards} card(s)"  # noqa: E501
 
         return [
             TranslationCard(
                 source=f"{source} (card {i})", target=f"{target} (card {i})"
             )
-            for i in range(self.n_cards)
+            for i in range(n_cards)
         ]
 
-    async def acall(self, card: TranslationCard):
+    async def acall(self, card: TranslationCard, n_cards: Optional[int] = None):
+        if n_cards is None:
+            n_cards = self.n_cards
+
         if self.sleep_interval > 0.0:
-            await asyncio.sleep(self.sleep_interval * self.n_cards)
+            await asyncio.sleep(self.sleep_interval * n_cards)
 
-        return self._call(card)
+        return self._call(card, n_cards=n_cards)
 
-    def __call__(self, card: TranslationCard):
+    def __call__(self, card: TranslationCard, n_cards: Optional[int] = None):
+        if n_cards is None:
+            n_cards = self.n_cards
+
         if self.sleep_interval > 0.0:
             time.sleep(self.sleep_interval * self.n_cards)
 
-        return self._call(card)
+        return self._call(card, n_cards=n_cards)
 
 
 class EmptyCardGenerator:
