@@ -315,6 +315,17 @@ def get_file_lock(path: Path):  # noqa: ARG001
     return asyncio.Lock()
 
 
+@lru_cache(maxsize=None)
+def get_file_tasks(path: Path):  # noqa: ARG001
+    """
+    Get a set of tasks for file operations.
+
+    We want to get the same set for the same path,
+    hence the use of lru_cache with the `path` argument.
+    """
+    return set()
+
+
 @dataclass
 class JSONCachedCardGenerator:
     """Can be called to generate language cards. Cache the result as a JSON."""
@@ -387,13 +398,14 @@ class JSONCachedCardGenerator:
 
     async def acall(self, card: TranslationCard) -> Iterator[TranslationCard]:
         """Generate language cards from the front text inserted into a prompt."""
-        cache_lock = get_file_lock(self.get_cache_path(card))
+        cache_path = self.get_cache_path(card)
+        cache_lock = get_file_lock(cache_path)
         cards = await self.get_from_cache(card, cache_lock=cache_lock)
         logger.debug(f"Retrieved {len(cards)} cards from cache for card {card}")
 
-        tasks = set()
+        tasks = get_file_tasks(cache_path)
         while True:
-            if len(cards) < self.min_cards:
+            if len(cards) < self.min_cards and not tasks:
                 logger.debug(
                     f"Cache has {len(cards)} < {self.min_cards} cards, "
                     f"generating more for card {card}"
@@ -414,7 +426,7 @@ class JSONCachedCardGenerator:
                 tasks.add(get_1_card)
                 get_1_card.add_done_callback(tasks.discard)
 
-            if tasks:
+                # We're out of cards, so need to wait for one of the two tasks
                 await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
             cards = await self.get_from_cache(card, cache_lock=cache_lock)
