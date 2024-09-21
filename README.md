@@ -156,7 +156,7 @@ and subsequently [apply it to your Anki installation](#applying-the-current-code
 ### Building the add-on
 To build the add-on, run:
 ```bash
-make build
+just build
 ```
 
 ### Branching strategy
