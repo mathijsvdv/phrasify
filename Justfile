@@ -3,7 +3,7 @@ set dotenv-load
 python := "python"
 _uv_python := if os() == "windows" { ".venv\\Scripts\\python.exe" } else { ".venv/bin/python" }
 anki_addon_name := env("ANKI_ADDON_NAME", "Phrasify")
-anki_addon_version := env("ANKI_ADDON_VERSION", "0.1.1")
+anki_addon_version := env("ANKI_ADDON_VERSION", "0.2.0")
 package_name := env("PACKAGE_NAME", "phrasify")
 release_folder := env("RELEASE_FOLDER", "./releases")
 release_name := anki_addon_name + "-" + anki_addon_version
