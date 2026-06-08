@@ -9,7 +9,6 @@ import os
 from .env import load_env
 from .logging import setup_logging, get_logger
 
-
 setup_logging()
 logger = get_logger(__name__)
 
